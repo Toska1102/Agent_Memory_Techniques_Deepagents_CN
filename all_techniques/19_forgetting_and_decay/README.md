@@ -1,48 +1,48 @@
-# Forgetting & Decay
+# 遗忘与衰减（Forgetting & Decay）
 
 <p align="center">
-  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/19_forgetting_and_decay/forgetting_and_decay.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/19_forgetting_and_decay/forgetting_and_decay.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="在 Colab 中打开"/></a>
 </p>
 
-## 📖 At a Glance
+## 📖 速览
 
-| Difficulty | Time | Prerequisites |
+| 难度 | 时长 | 前置要求 |
 |------------|------|---------------|
-| Intermediate | ~35 min | Python 3.8+, `OPENAI_API_KEY`, understanding of 06 Vector Store Memory recommended |
+| 中级 | 约 35 分钟 | Python 3.8+、`LLM_API_KEY`，建议先了解 06 向量库记忆 |
 
-This technique is for developers who want their agent to naturally forget low-value information over time, mimicking human memory decay.
+这项技术面向想让智能体随时间自然遗忘低价值信息的开发者。它模拟人类的记忆衰减。
 
 ## TL;DR
 
-- **What it is:** **Forgetting and Decay** reduces memory importance over time using exponential decay, reinforces memories on access, and prunes below a threshold.
-- **When you need it:** Your memory store grows unbounded and you need automatic cleanup that keeps frequently accessed memories alive.
-- **The trade-off:** All memories decay equally by age, so critical facts like allergies or legal constraints can be pruned without safeguards.
-- **Closest alternative in this repo:** 18 Temporal Memory uses time-based scoring at retrieval without deleting memories from the store.
+- **它是什么：** **遗忘与衰减**用指数衰减随时间降低记忆的重要性，在访问时强化记忆，并修剪低于阈值的记忆。
+- **何时需要：** 你的记忆存储无限增长，你需要一种自动清理机制，让频繁访问的记忆存活下来。
+- **权衡：** 所有记忆都按年龄同等衰减。如果没有保护机制，过敏史或法律约束这类关键事实也可能被修剪。
+- **本仓库中最接近的替代：** 18 时序记忆在检索时按时间打分，但不从存储中删除记忆。
 
-## Overview
+## 概述
 
-Think about your kitchen pantry. If you never throw anything out, it fills up with expired food. Finding what you need becomes harder. Eventually, you spend more time searching than cooking. Forgetting and Decay is the agent memory technique that applies this same controlled cleanup to LLM agent memory. It uses mathematical decay functions (like the exponential forgetting curve from Ebbinghaus's 1885 research) to reduce memory importance scores over time. Memories that are accessed often get reinforced through spaced repetition (reviewing at growing intervals). Memories that fall below a threshold get pruned. This keeps retrieval quality high for long-running chatbots, customer support agents, and other cost-sensitive systems.
+想想你的厨房储物间。如果什么都不扔，它会被过期食品塞满，找需要的东西越来越难。最后，你花在翻找上的时间比做饭还多。遗忘与衰减（Forgetting and Decay）就是把这种受控清理应用到 LLM 智能体记忆上的技术。它用数学衰减函数（如 Ebbinghaus 1885 年研究中的指数遗忘曲线）随时间降低记忆的重要性分数。经常被访问的记忆通过间隔重复（以越来越长的间隔复习）得到强化。跌破阈值的记忆会被修剪。对长期运行的聊天机器人、客服智能体和其他成本敏感系统来说，这能让检索质量保持在高水平。
 
-While it seems counterintuitive to deliberately forget, unbounded memory accumulation leads to three real problems: retrieval quality degrades, costs grow, and noise drowns out relevant information.
+主动遗忘看似违背直觉，但记忆无限累积会带来三个真实问题：检索质量退化、成本增长、噪声淹没相关信息。
 
-The goal is not to lose valuable information. The goal is to maintain a high signal-to-noise ratio in the memory store. What the agent remembers should be genuinely useful. Neuroscience now views biological forgetting as an adaptive feature of memory, not a failure. This technique brings that same principle to AI systems.
+目标不是丢失有价值的信息，而是让记忆存储保持高信噪比。智能体记住的应该都是真正有用的东西。神经科学现在把生物遗忘视为记忆的适应性特征，而不是缺陷。本技术把同样的原则带进 AI 系统。
 
-**Keywords:** agent memory, LLM agent, forgetting curve, exponential decay, spaced repetition, memory pruning, storage pressure, memory lifecycle, access-based reinforcement
+**关键词：** agent memory, LLM agent, forgetting curve, exponential decay, spaced repetition, memory pruning, storage pressure, memory lifecycle, access-based reinforcement
 
-## Key Concepts
+## 关键概念
 
-- **Ebbinghaus forgetting curve**: The empirical observation that memory retention decays exponentially over time without reinforcement. It provides the mathematical basis for decay functions.
-- **Exponential decay**: A decay function where memory strength decreases as `S(t) = S_0 * e^(-lambda * t)`. The decay rate lambda is configurable. A higher lambda means faster forgetting.
-- **Spaced repetition**: Reinforcing memories at increasing intervals to slow their decay. Borrowed from learning science (the Leitner system, the SM-2 algorithm).
-- **Access-based scoring**: Boosting a memory's retention score each time it's retrieved. This ensures frequently useful memories persist longer.
-- **Pruning thresholds**: Minimum score values below which memories become candidates for deletion or archival (moving to long-term cold storage).
-- **Memory lifecycle**: The full journey of a memory: creation, active use, decay, and eventual pruning or archival.
-- **Storage pressure management**: Triggering more aggressive forgetting when memory stores approach capacity limits.
+- **Ebbinghaus 遗忘曲线**：实验观察到的规律：没有强化时，记忆保持量随时间按指数衰减。它是衰减函数的数学基础。
+- **指数衰减**：一种衰减函数，记忆强度按 `S(t) = S_0 * e^(-lambda * t)` 下降。衰减率 lambda 可配置，lambda 越大遗忘越快。
+- **间隔重复**：以递增的间隔强化记忆，减慢衰减。借自学习科学（Leitner 系统、SM-2 算法）。
+- **基于访问的打分**：记忆每被检索一次，保持分数就提升一次。这保证经常有用的记忆活得更久。
+- **修剪阈值**：最低分数线，低于它的记忆成为删除或归档（移入长期冷存储）的候选。
+- **记忆生命周期**：一条记忆的完整旅程：创建、活跃使用、衰减，最终修剪或归档。
+- **存储压力管理**：当记忆存储逼近容量上限时，触发更激进的遗忘。
 
-## Architecture
+## 架构
 
 <p align="center">
-  <img src="../../images/diagrams/19_forgetting_and_decay.svg" alt="Forgetting And Decay architecture diagram" width="720"/>
+  <img src="../../images/diagrams/19_forgetting_and_decay.svg" alt="遗忘与衰减架构图" width="720"/>
 </p>
 
 <details><summary>Mermaid source</summary>
@@ -78,75 +78,75 @@ flowchart TD
 
 ---
 
-## How It Works
+## 工作原理
 
-1. Each memory gets an initial strength score based on its estimated importance.
-2. A decay function continuously reduces the strength score as time passes since last access.
-3. When a memory is retrieved, its strength is boosted (reinforcement). This resets or slows the decay.
-4. A background process periodically identifies memories whose scores fall below the pruning threshold.
-5. Below-threshold memories are either soft-deleted (moved to archival storage) or hard-deleted depending on policy.
-6. Storage pressure can dynamically adjust the pruning threshold, triggering more aggressive forgetting when needed.
+1. 每条记忆根据预估重要性获得一个初始强度分数。
+2. 衰减函数随距上次访问的时间不断降低强度分数。
+3. 记忆被检索时，强度得到提升（强化）。这会重置或减缓衰减。
+4. 后台进程定期找出分数低于修剪阈值的记忆。
+5. 低于阈值的记忆按策略软删除（移入归档存储）或硬删除。
+6. 存储压力可以动态调整修剪阈值，在需要时触发更激进的遗忘。
 
-## When to Use
+## 何时使用
 
-- Long-lived agents that accumulate thousands of memories and experience retrieval quality degradation.
-- Cost-sensitive systems where storage and embedding costs grow with memory volume.
-- Environments with high information turnover where old data frequently becomes irrelevant.
+- 长期运行的智能体累积了数千条记忆，检索质量开始退化。
+- 成本敏感的系统，存储和嵌入成本随记忆量增长。
+- 信息更替频繁的环境，旧数据经常迅速失效。
 
-## Limitations
+## 局限
 
-- Critical information (user allergies, legal requirements, safety rules) can decay and get pruned if you don't exempt it. The decay function treats all memories equally by age.
-- Rarely accessed but important memories (annual compliance procedures, once-a-year events) decay long before their next use. Access frequency doesn't always reflect importance.
-- The half-life, reinforcement boost, and pruning threshold interact in non-obvious ways. Expect iterative tuning for each use case.
-- When information becomes stale, the old version and the new correction coexist in memory. Decay alone doesn't resolve conflicting versions. The outdated entry persists until it naturally decays away.
-- Clock skew in distributed systems can cause unexpected forgetting. All decay calculations depend on the difference between "now" and "last accessed."
+- 关键信息（用户过敏、法律要求、安全规则）如果不设豁免，也会衰减并被修剪。衰减函数对所有记忆按年龄一视同仁。
+- 访问稀少但重要的记忆（年度合规流程、一年一次的事件）会在下次使用前很久就衰减。访问频率不总等于重要性。
+- 半衰期、强化增益和修剪阈值以不明显的方式相互作用。每个用例都要迭代调参。
+- 信息过时后，旧版本和新的更正在记忆中并存。仅靠衰减无法解决版本冲突。过时条目要等自然衰减才会消失。
+- 分布式系统的时钟偏差会导致意外的遗忘。所有衰减计算都依赖「当前时间」和「最后访问时间」之差。
 
 ## Notebook
 
-The [full notebook](./forgetting_and_decay.ipynb) walks you through a complete implementation. You'll build:
+[完整 notebook](./forgetting_and_decay.ipynb) 带你走完整个实现。你会构建：
 
-- A `DecayableMemory` data class that tracks strength, access count, and timestamps.
-- A `DecayEngine` that applies exponential decay with a configurable half-life and reinforces memories on retrieval.
-- A `ForgettingMemoryStore` that combines embedding-based search with strength-weighted ranking, automatic pruning, and storage pressure management.
-- An end-to-end agent demo that shows how memories fade and get pruned over simulated time.
+- 一个 `DecayableMemory` 数据类，跟踪强度、访问次数和时间戳。
+- 一个 `DecayEngine`，用可配置的半衰期应用指数衰减，并在检索时强化记忆。
+- 一个 `ForgettingMemoryStore`，把基于嵌入的搜索与强度加权排序、自动修剪和存储压力管理结合起来。
+- 一个端到端的智能体演示，展示记忆如何在模拟时间中淡出并被修剪。
 
-The notebook uses the OpenAI SDK for embeddings and chat completions.
+notebook 使用 OpenAI SDK 做嵌入和聊天补全。
 
 ## FAQ
 
-### Q: What is Forgetting and Decay in agent memory?
+### 问：智能体记忆中的遗忘与衰减是什么？
 
-**A:** Forgetting and Decay reduces memory importance scores over time using exponential decay and permanently prunes memories that fall below a threshold. Memories that are accessed or reinforced have their scores boosted, keeping useful memories alive. This mimics the Ebbinghaus forgetting curve from cognitive science. The net effect is a self-cleaning memory store where frequently used memories survive and neglected ones disappear. Typical implementations use a decay half-life of 1 to 30 days depending on the domain.
+**答：** 遗忘与衰减用指数衰减随时间降低记忆的重要性分数，并永久修剪跌破阈值的记忆。被访问或强化的记忆分数会提升，有用的记忆得以存活。这模仿了认知科学中的 Ebbinghaus 遗忘曲线。净效果是一个自清洁的记忆存储：常用记忆留存，被忽视的记忆消失。典型实现按领域使用 1 到 30 天的衰减半衰期。
 
-### Q: When should I use Forgetting and Decay instead of Temporal Memory?
+### 问：什么时候用遗忘与衰减，而不是时序记忆？
 
-**A:** Use Forgetting and Decay when you need to control storage size and cost by permanently removing stale memories. Temporal Memory (technique 18) keeps all memories but down-ranks old ones during retrieval. If your agent runs for months and accumulates tens of thousands of memories, decay with pruning prevents the store from growing without bound. Choose temporal memory alone when you need to keep all data for compliance or auditing but still prefer fresh results.
+**答：** 当你需要通过永久删除陈旧记忆来控制存储规模和成本时，用遗忘与衰减。时序记忆（技术 18）保留全部记忆，只在检索时降低旧记忆的排名。如果你的智能体运行数月、累积了数万条记忆，衰减加修剪能防止存储无限增长。如果出于合规或审计必须保留全部数据，但仍偏好新结果，就只用时序记忆。
 
-### Q: What are the limits or failure modes of Forgetting and Decay?
+### 问：遗忘与衰减有哪些局限或失败模式？
 
-**A:** Pruned memories are gone forever unless you maintain a separate archive. Incorrect threshold or half-life settings can delete important but infrequently accessed memories. A user preference stated once and never re-accessed will decay and vanish. The decay function is domain-sensitive: a 7-day half-life works for news but not for medical history. Reinforcement on access can create feedback loops where popular memories get stronger while equally valid alternatives starve.
+**答：** 被修剪的记忆永久消失，除非你另建归档。阈值或半衰期设置不当，会删掉重要但很少访问的记忆。一条只说过一次、再没被访问过的用户偏好会衰减并消失。衰减函数对领域敏感：7 天半衰期适合新闻，不适合病史。访问即强化会形成反馈循环：热门记忆越来越强，同样有效的备选记忆却被饿死。
 
-### Q: Can I combine Forgetting and Decay with another memory technique?
+### 问：遗忘与衰减可以和其他记忆技术组合吗？
 
-**A:** Yes. Pair it with technique 14 (Memory Consolidation) so that consolidation runs before pruning. This way, related memories merge into stronger combined entries before weak individual ones get pruned. Combine it with technique 10 (Semantic Memory) to protect certain fact categories (like user identity or compliance data) from decay using "pinned" flags. Add technique 13 (Hierarchical Memory Layers) to demote decaying memories to cold storage instead of deleting them.
+**答：** 可以。与技术 14（记忆巩固）搭配，让巩固在修剪之前运行。这样，相关记忆先合并成更强的条目，弱的单条记忆再被修剪。与技术 10（语义记忆）组合，用「置顶」标志保护特定类别的事实（如用户身份或合规数据）不被衰减。再加上技术 13（分层记忆），把衰减中的记忆降级到冷存储而不是删除。
 
-### Q: What library or framework can I use to skip the implementation work?
+### 问：有什么库或框架可以省去自己实现？
 
-**A:** Zep (technique 27) implements time-based decay and importance scoring in its managed memory service. Mem0 (technique 25) supports memory lifecycle management with automatic relevance scoring. No major framework provides a standalone decay-and-pruning class. For custom builds, add an `importance` field and `last_accessed` timestamp to your memory store, then run a periodic job that applies the decay formula and deletes entries below the threshold. This requires roughly 30-50 lines of Python.
+**答：** Zep（技术 27）在其托管记忆服务中实现了基于时间的衰减和重要性打分。Mem0（技术 25）通过自动相关性打分支持记忆生命周期管理。没有主流框架提供独立的衰减加修剪类。自己实现的话，给记忆存储加上 `importance` 字段和 `last_accessed` 时间戳，再跑一个定期任务：应用衰减公式、删除低于阈值的条目。大约需要 30-50 行 Python。
 
-## References
+## 参考文献
 
 - Ebbinghaus, H. (1885). *Memory: A Contribution to Experimental Psychology*. (Translated by Ruger & Bussenius, 1913).
 - Zhong, W., et al. (2024). "MemoryBank: Enhancing Large Language Models with Long-Term Memory." arXiv:2305.10250.
 - Richards, B. A., & Frankland, P. W. (2017). "The Persistence and Transience of Memory." *Neuron*, 94(6), 1071-1084.
 - Wozniak, P. A., & Gorzelanczyk, E. J. (1994). "Optimization of Repetition Spacing in the Practice of Learning." *Acta Neurobiologiae Experimentalis*, 54, 59-62.
 
-## Related Techniques
+## 相关技术
 
-- [**18 Temporal Memory**](../18_temporal_memory/) - The time-aware companion. Temporal memory scores by recency. Forgetting and decay prunes by age.
-- [**14 Memory Consolidation**](../14_memory_consolidation/) - Another memory lifecycle technique. It merges and deduplicates instead of deleting.
-- [**15 Memory Compaction**](../15_memory_compaction/) - Compresses memories to save space. A complement to pruning: shrink before you delete.
-- [**30 Production Memory Patterns**](../30_production_memory_patterns/) - Decay policies are essential for production deployments. This technique shows how to operationalize them.
+- [**18 时序记忆**](../18_temporal_memory/) - 时间感知的姊妹技术。时序记忆按新近度打分，遗忘与衰减按年龄修剪。
+- [**14 记忆巩固**](../14_memory_consolidation/) - 另一种记忆生命周期技术。它合并和去重，而不是删除。
+- [**15 记忆压缩**](../15_memory_compaction/) - 压缩记忆以节省空间。修剪的互补手段：先压缩，再删除。
+- [**30 生产级记忆模式**](../30_production_memory_patterns/) - 衰减策略是生产部署的必备项。该技术展示如何把它落地。
 
 ---
 

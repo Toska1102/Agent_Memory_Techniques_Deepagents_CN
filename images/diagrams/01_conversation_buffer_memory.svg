@@ -48,7 +48,7 @@
   <g>
     <rect x="900" y="90" width="180" height="62" rx="14" fill="url(#gLLM)" opacity="0.92" filter="url(#shadow)"/>
     <text x="990" y="120" text-anchor="middle" font-size="15" font-weight="bold" fill="white">✨  LLM</text>
-    <text x="990" y="140" text-anchor="middle" font-size="12" fill="#ffe4f1">Claude</text>
+    <text x="990" y="140" text-anchor="middle" font-size="12" fill="#ffe4f1">LLM</text>
   </g>
 
   <!-- lifelines -->

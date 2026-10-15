@@ -1,49 +1,49 @@
-# Procedural Memory
+# 程序性记忆（Procedural Memory）
 
 <p align="center">
-  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/11_procedural_memory/procedural_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/11_procedural_memory/procedural_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="在 Colab 中打开"/></a>
 </p>
 
-## 📖 At a Glance
+## 📖 速览
 
-| Difficulty | Time | Prerequisites |
+| 难度 | 耗时 | 前置要求 |
 |------------|------|---------------|
-| Intermediate | ~35 min | Python 3.8+, `OPENAI_API_KEY`, understanding of 09 Episodic Memory and 10 Semantic Memory recommended |
+| 中级 | 约 35 分钟 | Python 3.8+、`LLM_API_KEY`、建议先理解 09 情景记忆和 10 语义记忆 |
 
-This technique is for developers building agents that learn and improve their own workflows, storing reusable procedures and skills.
+这项技术面向这样的开发者：你在构建能学习并改进自身工作流的智能体，需要存储可复用的过程和技能。
 
 ## TL;DR
 
-- **What it is:** **Procedural Memory** stores reusable step-by-step workflows in a skill library so agents can retrieve proven procedures instead of reasoning from scratch.
-- **When you need it:** Your agent repeats similar multi-step tasks and you want it to learn and reuse successful workflows.
-- **The trade-off:** Procedures extracted from one context may not generalize well, and the skill library needs curation as it grows.
-- **Closest alternative in this repo:** 09 Episodic Memory records what happened, while Procedural Memory records how to do it.
+- **是什么：** **程序性记忆**把可复用的分步工作流存进技能库，让智能体检索经过验证的过程，而不是从零推理。
+- **什么时候需要：** 你的智能体反复执行相似的多步任务，你希望它学会并复用成功的工作流。
+- **代价：** 从一个情境抽出的过程未必能泛化，技能库变大后需要持续维护。
+- **本仓库中最接近的替代：** 09 情景记忆记录发生了什么，程序性记忆记录怎么做事。
 
-## Overview
+## 概述
 
-Think about cooking a new recipe. You check every step the first time, but by the tenth attempt your hands move on autopilot. Procedural Memory is the agent memory technique that gives an LLM agent this same learn-by-doing ability. It captures reusable workflows (step-by-step action sequences) and stores them in a skill library. When a similar task appears, the agent retrieves the proven procedure instead of reasoning from scratch. This makes it especially useful for agents that run repetitive multi-step tasks like data pipelines, API integrations, or code deployments.
+想想做一道新菜。第一次你步步对照，到第十次，双手已经自动运转。程序性记忆就是给 LLM 智能体这种「做中学」能力的智能体记忆技术。它捕捉可复用的工作流（一步步的动作序列），存进技能库。相似任务出现时，智能体检索经过验证的过程，而不是从零推理。对反复执行多步任务的智能体（数据管道、API 集成、代码部署）来说，它尤其好用。
 
-Procedural memory gives an AI agent that same ability. It captures step-by-step strategies and workflows (sequences of actions that accomplish a goal) that the agent discovers through experience. Most memory techniques store *what happened* or *what is true*. Procedural memory stores *how to do things*.
+程序性记忆把这种能力带给 AI 智能体。它捕捉智能体在经验中发现的分步策略和工作流（能达成目标的一串动作）。大多数记忆技术存储*发生了什么*或*什么为真*，程序性记忆存储*怎么做事*。
 
-Here's the problem it solves. Without procedural memory, an agent must re-derive solutions from scratch every time it faces a similar task. With procedural memory, it retrieves the learned procedure and adapts it. Systems like Voyager (Wang et al., 2023) show this in action. That Minecraft agent writes reusable code-based skills and stores them in a skill library (an organized collection of procedures). It retrieves those skills for future tasks.
+它解决的问题很明确。没有程序性记忆，智能体每次遇到相似任务都要从头推导解法。有了程序性记忆，它检索学到的过程并加以适配。Voyager（Wang et al., 2023）这类系统已经证明了这一点：那个 Minecraft 智能体编写可复用的代码化技能，存进技能库（skill library，有条理的过程集合），后续任务直接取用。
 
-The engineering challenges are threefold. First, **procedure extraction**: isolating the reusable action sequence from the noise of one specific run. Second, **generalization**: making the procedure flexible enough to work in new situations. Third, **retrieval**: matching new tasks to the right procedure in the library.
+工程挑战有三个。第一，**过程抽取（procedure extraction）**：把可复用的动作序列从一次具体运行的噪声里分离出来。第二，**泛化（generalization）**：让过程足够灵活，能用于新情境。第三，**检索（retrieval）**：把新任务匹配到库里正确的过程。
 
-**Keywords:** agent memory, LLM agent, procedural memory, skill library, workflow templates, tool-use patterns, reusable procedures, task automation, multi-step agents
+**关键词：** 智能体记忆、LLM 智能体、程序性记忆、技能库、工作流模板、工具使用模式、可复用过程、任务自动化、多步智能体
 
-## Key Concepts
+## 关键概念
 
-- **Procedure extraction**: Identifying and isolating reusable step sequences from successful task completions.
-- **Step sequences**: Ordered lists of actions that together accomplish a goal. You store these as executable templates (reusable blueprints with placeholder values).
-- **Workflow templates**: Parameterized procedures. Specific values like file names or API endpoints become placeholders. This makes the workflow apply to new inputs while keeping the overall strategy intact.
-- **Tool-use patterns**: Learned sequences of tool calls, including how to build arguments and parse outputs.
-- **Skill libraries**: Organized collections of procedures indexed by task type, domain, or capability.
-- **Procedure generalization**: Abstracting a specific procedure into a broader form. For example, "Deploy app X to server Y" becomes "Deploy {app} to {server}."
+- **过程抽取**：从成功的任务完成中识别并分离出可复用的步骤序列。
+- **步骤序列（step sequence）**：共同达成一个目标的有序动作列表。你把它们存成可执行模板（带占位符的可复用蓝图）。
+- **工作流模板（workflow template）**：参数化的过程。文件名、API 端点这类具体值都变成占位符。整体策略不变，工作流却能套用新输入。
+- **工具使用模式（tool-use pattern）**：学到的工具调用序列，包括如何构造参数、如何解析输出。
+- **技能库（skill library）**：按任务类型、领域或能力索引、有条理的过程集合。
+- **过程泛化（procedure generalization）**：把具体过程抽象成更通用的形式。比如「把应用 X 部署到服务器 Y」变成「把 {app} 部署到 {server}」。
 
-## Architecture
+## 架构
 
 <p align="center">
-  <img src="../../images/diagrams/11_procedural_memory.svg" alt="Procedural Memory architecture diagram" width="720"/>
+  <img src="../../images/diagrams/11_procedural_memory.svg" alt="程序性记忆架构图" width="720"/>
 </p>
 
 <details><summary>Mermaid source</summary>
@@ -65,71 +65,71 @@ flowchart LR
 
 ---
 
-## How It Works
+## 工作原理
 
-1. The agent completes a task using step-by-step reasoning or tool calls.
-2. A procedure extractor identifies the successful action sequence and turns it into a template.
-3. The template goes into a skill library, indexed by task type and relevant metadata (descriptive tags that help with later retrieval).
-4. On future tasks, the agent retrieves matching procedures and adapts them to the current context.
-5. Procedures are refined over time based on success or failure feedback.
+1. 智能体用分步推理或工具调用完成一个任务。
+2. 过程抽取器识别出成功的动作序列，把它变成模板。
+3. 模板进入技能库，按任务类型和相关元数据（帮助后续检索的描述性标签）索引。
+4. 之后的任务中，智能体检索匹配的过程，并适配到当前情境。
+5. 过程根据成败反馈不断打磨。
 
-## When to Use
+## 何时使用
 
-- Agents that repeatedly perform similar multi-step tasks (e.g., data pipelines, API integrations).
-- Scenarios where tool-use sequences are complex and benefit from being learned once, then reused.
-- Systems that need to transfer learned skills across sessions or between agents.
+- 智能体反复执行相似的多步任务（如数据管道、API 集成）。
+- 工具调用序列复杂、值得一次学会反复使用的场景。
+- 需要把学到的技能跨会话、跨智能体迁移的系统。
 
-## Limitations
+## 局限
 
-- Procedures extracted from one successful run may not generalize well. A different OS or API version can cause stored steps to fail silently.
-- LLM-based retrieval can match the wrong procedure, especially as the library grows. You need confidence thresholds and a fallback to solve from scratch.
-- Stored procedures go stale as tools and APIs change. Without an invalidation or update mechanism, the library accumulates unreliable knowledge.
-- If every task is unique, the skill library never gets reused. Extraction cost adds overhead with no payoff.
+- 从一次成功运行抽出的过程未必能泛化。操作系统或 API 版本不同，存好的步骤可能悄无声息地失败。
+- 基于 LLM 的检索可能匹配到错误的过程，库变大后尤其如此。你需要置信度阈值，以及从零解决的回退方案。
+- 工具和 API 在变，存储的过程会过时。没有失效或更新机制，库里会积累不可靠的知识。
+- 如果每个任务都是独一无二的，技能库永远用不上，抽取成本变成纯开销。
 
 ## Notebook
 
-The [procedural memory notebook](./procedural_memory.ipynb) walks you through building a full procedural memory system from scratch using the OpenAI SDK. You'll implement:
+[程序性记忆 notebook](./procedural_memory.ipynb) 带你用 deepagents 和任意 OpenAI 兼容端点从零搭建一个完整的程序性记忆系统。你将实现：
 
-1. A `Procedure` dataclass that captures parameterized workflows.
-2. LLM-powered extraction that distills execution traces into reusable templates.
-3. A skill library with LLM-based retrieval and adaptation.
-4. Three end-to-end scenarios: learning a deployment procedure, retrieving and adapting it for a new task, and growing the library with a data pipeline procedure.
+1. 一个 `Procedure` dataclass，捕捉参数化的工作流。
+2. 用 LLM 做抽取，把执行轨迹蒸馏成可复用的模板。
+3. 一个技能库，带基于 LLM 的检索和适配。
+4. 三个端到端场景：学习一个部署过程、为新任务检索并适配它、再用一个数据管道过程扩充技能库。
 
-## FAQ
+## 常见问题
 
-### Q: What is Procedural Memory in agent memory?
+### 问：智能体记忆中的程序性记忆是什么？
 
-**A:** Procedural Memory stores reusable step-by-step workflows (called "skills" or "procedures") in a skill library. Instead of reasoning from scratch each time, the agent retrieves a proven procedure for the task at hand. Each procedure includes steps, preconditions, and expected outcomes. This mirrors how humans remember "how to ride a bike" separately from "the time I fell off my bike." It reduces repeated reasoning and improves consistency across similar tasks.
+**答：** 程序性记忆把可复用的分步工作流（也叫「技能」或「过程」）存在技能库里。智能体不用每次从零推理，而是为手头任务检索一个经过验证的过程。每个过程包含步骤、前置条件和预期结果。这对应人类记忆的分工：「怎么骑自行车」和「某次从自行车上摔下来」是分开存的。它减少重复推理，让相似任务的表现更稳定。
 
-### Q: When should I use Procedural Memory instead of Episodic Memory?
+### 问：什么时候该用程序性记忆而不是情景记忆？
 
-**A:** Use Procedural Memory when your agent performs repeatable tasks that follow a known pattern, such as deploying code, filing reports, or processing orders. Episodic Memory (technique 09) records what happened during a specific interaction but does not generalize it into a reusable workflow. Procedural memory answers "how do I do X?" while episodic memory answers "what happened last time I did X?" Use both together for the strongest coverage.
+**答：** 当智能体执行可重复、模式固定的任务时，用程序性记忆，比如部署代码、提交报告、处理订单。情景记忆（技术 09）记录某次交互中发生了什么，但不把它泛化成可复用的工作流。程序性记忆回答「怎么做 X」，情景记忆回答「上次做 X 时发生了什么」。两者结合，覆盖最全。
 
-### Q: What are the limits or failure modes of Procedural Memory?
+### 问：程序性记忆有哪些局限或失败模式？
 
-**A:** Procedures go stale when the underlying system changes. A deployment procedure written for v1 may break on v2. The agent may retrieve a procedure that partially matches but is wrong for the current context. Procedure extraction requires careful prompt engineering or human curation. Over time, the skill library can accumulate conflicting or redundant procedures if there is no versioning or consolidation mechanism.
+**答：** 底层系统一变，过程就会过时。为 v1 写的部署过程，到 v2 可能就跑不通。智能体可能检索到一个部分匹配、但不适配当前情境的过程。过程抽取需要仔细的提示词工程或人工筛选。时间一长，如果没有版本管理或巩固机制，技能库会积累相互冲突或冗余的过程。
 
-### Q: Can I combine Procedural Memory with another memory technique?
+### 问：程序性记忆能和其他记忆技术组合吗？
 
-**A:** Yes. Combine it with technique 16 (Self-Reflection Memory) so the agent updates procedures based on what worked and what failed. After executing a procedure, the agent reflects on the outcome and revises the steps. You can also pair it with technique 17 (Memory Routing) to automatically select the right procedure based on task classification. This creates an adaptive skill library that improves with each execution.
+**答：** 能。与技术 16（自我反思记忆）结合，智能体根据成败更新过程：执行之后反思结果，修订步骤。也可以搭配技术 17（记忆路由），按任务分类自动挑选正确的过程。这样就有了一个越用越强的自适应技能库。
 
-### Q: What library or framework can I use to skip the implementation work?
+### 问：有什么库或框架能省掉自己实现的工作？
 
-**A:** No major framework offers a dedicated procedural memory class as of late 2025. Letta/MemGPT (technique 26) can store procedures in its archival memory tier. LangChain's tool and agent abstractions can serve as a foundation: define each procedure as a tool or chain and let the agent select it. Voyager (for Minecraft agents) pioneered the skill-library pattern. For production use, you typically build a custom retrieval layer over a vector store of procedure documents.
+**答：** 截至 2025 年底，还没有主流框架提供专门的程序性记忆类。Letta/MemGPT（技术 26）可以把过程存进它的归档记忆层。LangChain 的工具和智能体抽象可以当基础：把每个过程定义成一个工具或链，让智能体自己选。Voyager（面向 Minecraft 智能体）开创了技能库模式。生产环境中，你通常要在过程文档的向量库之上自建检索层。
 
-## References
+## 参考文献
 
 - Sumers, T. R., et al. (2023). "Cognitive Architectures for Language Agents." arXiv:2309.02427.
 - Wang, G., et al. (2023). "Voyager: An Open-Ended Embodied Agent with Large Language Models." arXiv:2305.16291.
 - Anderson, J. R. (1982). "Acquisition of Cognitive Skill." *Psychological Review*, 89(4), 369-406.
 - Park, J. S., et al. (2023). "Generative Agents: Interactive Simulacra of Human Behavior." arXiv:2304.03442.
 
-## Related Techniques
+## 相关技术
 
-- [**09 Episodic Memory**](../09_episodic_memory/) - Stores what happened, while procedural memory stores how to do things. Use both for a complete picture of an agent's experience.
-- [**10 Semantic Memory**](../10_semantic_memory/) - Stores factual knowledge ("what is true"). Pair it with procedural memory so your agent knows both facts and skills.
-- [**12 Working Memory & Context Window Management**](../12_working_memory_context_window/) - Procedures load into the context window for execution. This technique manages what fits and what gets evicted.
-- [**23 Memory with Tools**](../23_memory_with_tools/) - Procedural memory shines when agents call external tools. This technique covers tool-memory integration patterns.
+- [**09 情景记忆**](../09_episodic_memory/) - 记录发生了什么，程序性记忆记录怎么做事。两者结合，才能完整刻画智能体的经历。
+- [**10 语义记忆**](../10_semantic_memory/) - 存储事实知识（「什么为真」）。和程序性记忆搭配，智能体既有知识也有技能。
+- [**12 工作记忆与上下文窗口管理**](../12_working_memory_context_window/) - 过程要装进上下文窗口才能执行。这项技术决定装什么、淘汰什么。
+- [**23 工具化记忆**](../23_memory_with_tools/) - 智能体调用外部工具时，程序性记忆最能发挥价值。这项技术讲工具与记忆的集成模式。
 
 ---
 

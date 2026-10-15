@@ -17,3 +17,5 @@ numpy
 mem0ai
 letta-client
 networkx
+deepagents
+matplotlib

@@ -1,118 +1,118 @@
-# Memory Routing
+# 记忆路由（Memory Routing）
 
 <p align="center">
-  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/17_memory_routing/memory_routing.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/17_memory_routing/memory_routing.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="在 Colab 中打开"/></a>
 </p>
 
-## 📖 At a Glance
+## 📖 速览
 
-| Difficulty | Time | Prerequisites |
+| 难度 | 用时 | 前置要求 |
 |------------|------|---------------|
-| Intermediate | ~35 min | Python 3.8+, `OPENAI_API_KEY`, understanding of 06 Vector Store Memory recommended |
+| 中级 | 约 35 分钟 | Python 3.8+、`LLM_API_KEY`，建议先了解 06 向量库记忆 |
 
-This technique is for developers who manage multiple memory stores and need an intelligent router to direct queries to the right backend.
+这个技术面向管理多个记忆存储、需要一个智能路由器把查询导向正确后端的开发者。
 
 ## TL;DR
 
-- **What it is:** **Memory Routing** classifies each memory operation by content type and routes it to the correct specialized store (episodic, semantic, or procedural).
-- **When you need it:** You run multiple memory backends and need an intelligent dispatcher instead of querying all stores on every request.
-- **The trade-off:** Every operation triggers a 200-500ms LLM classification call, and misrouting sends data to the wrong store silently.
-- **Closest alternative in this repo:** 13 Hierarchical Memory Layers routes by access frequency across tiers, not by content type across stores.
+- **它是什么：** **记忆路由（Memory Routing）**按内容类型给每条记忆操作分类，并把它路由到正确的专用存储（情景、语义或程序性）。
+- **什么时候需要：** 你运行着多个记忆后端，需要一个智能调度器，而不是每次请求都查所有存储。
+- **代价：** 每次操作都会触发一次 200-500 毫秒的 LLM 分类调用；误路由会把数据悄悄送进错误的存储。
+- **本仓库中最接近的替代方案：** 13 分层记忆按访问频率在层间路由，而不是按内容类型在存储间路由。
 
-## Overview
+## 概述
 
-Imagine a library with separate rooms: one for history books, one for cookbooks, one for repair manuals. When a visitor asks a question, the librarian doesn't search every room. They figure out what kind of question it is, then walk to the right room. Memory Routing is the agent memory technique that gives an LLM agent this same dispatch ability. It classifies each read or write operation by content type: episodic, semantic, or procedural. Then it directs the operation to the correct specialized memory store. You'll need it when building modular memory architectures for complex agents like personal assistants or multi-domain chatbots.
+想象一座分成多个房间的图书馆：一间放历史书，一间放菜谱，一间放维修手册。读者提问时，图书管理员不会搜遍每个房间。他们先判断这是什么类型的问题，再走向对应的房间。记忆路由就是让 LLM 智能体具备同样调度能力的智能体记忆技术。它按内容类型给每个读写操作分类：情景、语义或程序性，然后把操作导向正确的专用记忆存储。当你要为个人助手或多领域聊天机器人这类复杂智能体搭建模块化记忆架构时，就会用到它。
 
-Without routing, agents dump everything into a single large store and lose the benefits of specialization. Good routing enables modular memory architectures. You can add new memory types without restructuring the system.
+没有路由时，智能体把所有东西塞进一个大存储，失去专业化的好处。好的路由让模块化记忆架构成为可能。你可以在不重构系统的前提下添加新的记忆类型。
 
-**Keywords:** agent memory, LLM agent, memory routing, memory type classification, episodic memory, semantic memory, procedural memory, modular memory architecture, memory dispatcher
+**关键词：** agent memory、LLM agent、memory routing、memory type classification（记忆类型分类）、episodic memory（情景记忆）、semantic memory（语义记忆）、procedural memory（程序性记忆）、modular memory architecture（模块化记忆架构）、memory dispatcher（记忆调度器）
 
-## Key Concepts
+## 核心概念
 
-- **Memory type classification**: Sorting content into categories like episodic (events), semantic (facts), or procedural (how-to steps). This guides where to store and retrieve it.
-- **Read routing**: Picking which store(s) to query based on a question's intent. "What happened yesterday?" routes to episodic. "What's our rate limit?" routes to semantic.
-- **Write routing**: Directing new content to the correct store with the right formatting.
-- **Fallback strategies**: Default behavior when the router is uncertain. For example: search all stores and merge results.
+- **记忆类型分类（memory type classification）**：把内容分成情景（事件）、语义（事实）或程序性（操作步骤）等类别。它决定内容的存取位置。
+- **读取路由（read routing）**：根据问题的意图选择要检索的存储。「昨天发生了什么？」路由到情景存储。「我们的速率限制是多少？」路由到语义存储。
+- **写入路由（write routing）**：把新内容以正确的格式送到正确的存储。
+- **回退策略（fallback strategy）**：路由器拿不准时的默认行为。比如：检索所有存储并合并结果。
 
-## Architecture
+## 架构
 
 <p align="center">
-  <img src="../../images/diagrams/17_memory_routing.svg" alt="Memory Routing architecture diagram" width="720"/>
+  <img src="../../images/diagrams/17_memory_routing.svg" alt="记忆路由架构图" width="720"/>
 </p>
 
 ---
 
-## How It Works
+## 工作原理
 
-1. The router sends incoming content or query text to an LLM classifier (a model that picks the right category).
-2. The classifier returns one or more memory types: episodic, semantic, or procedural.
-3. For writes, the router creates a memory entry and stores it in each matching specialized store.
-4. For reads, the router searches only the classified store(s) and scores results by keyword overlap.
-5. Results from multiple stores are merged and deduplicated (removing repeated entries) before returning.
-6. For ambiguous queries, a fallback mode searches all stores at once and merges the results.
+1. 路由器把进来的内容或查询文本交给 LLM 分类器（一个负责挑出正确类别的模型）。
+2. 分类器返回一种或多种记忆类型：情景、语义或程序性。
+3. 写入时，路由器创建一条记忆条目，存进每个匹配的专用存储。
+4. 读取时，路由器只检索被分类到的存储，并按关键词重叠给结果打分。
+5. 来自多个存储的结果先合并、去重（移除重复条目），再返回。
+6. 遇到模糊查询时，回退模式一次性检索所有存储并合并结果。
 
-## What the Notebook Covers
+## Notebook 涵盖的内容
 
-The [notebook](./memory_routing.ipynb) builds a complete memory routing system from scratch:
+[notebook](./memory_routing.ipynb) 从零构建一套完整的记忆路由系统：
 
-1. **Data model**: A `MemoryType` enum and `MemoryEntry` dataclass for typed memory entries.
-2. **Specialized stores**: Three `MemoryStore` instances (episodic, semantic, procedural), each with keyword-based search.
-3. **LLM-powered router**: A `MemoryRouter` class that uses GPT-4o-mini to classify content and queries, then routes operations to the right store.
-4. **Write pipeline**: Classifies incoming content and stores it in the matching store(s).
-5. **Read pipeline**: Classifies queries, searches the relevant store(s), and returns merged results.
-6. **Fallback**: A fan-out method that searches all stores for ambiguous queries.
-7. **Routing log**: Every decision is recorded for debugging and classifier improvement.
+1. **数据模型**：`MemoryType` 枚举和 `MemoryEntry` 数据类，表示带类型的记忆条目。
+2. **专用存储**：三个 `MemoryStore` 实例（情景、语义、程序性），各自带基于关键词的搜索。
+3. **LLM 驱动的路由器**：`MemoryRouter` 类用 GPT-4o-mini 给内容和查询分类，再把操作路由到正确的存储。
+4. **写入流程**：给进来的内容分类，存入匹配的存储。
+5. **读取流程**：给查询分类，检索相关存储，返回合并后的结果。
+6. **回退**：一个扇出方法，为模糊查询检索所有存储。
+7. **路由日志**：记录每一次决策，用于调试和改进分类器。
 
-## When to Use
+## 何时使用
 
-- Agents with multiple specialized memory stores that need unified access.
-- Systems where different memory types have different storage and retrieval needs.
-- Architectures designed for extensibility, where new memory types may appear over time.
+- 拥有多个专用记忆存储、需要统一访问入口的智能体。
+- 不同记忆类型有不同存储和检索需求的系统。
+- 为可扩展性而设计的架构：新记忆类型会随时间出现。
 
-## Limitations
+## 局限
 
-- Every read or write triggers an LLM classification call. This adds 200-500ms of latency per operation, which accumulates in high-throughput systems.
-- If the classifier picks the wrong memory type, data lands in the wrong store. You get no results because the system never searches where the data actually lives.
-- Content that spans multiple types (like "In yesterday's meeting, we set the refund window to 14 days") needs multi-label classification. Without it, the router misses relevant results.
-- The LLM classifier has no confidence score. It makes hard routing decisions without signaling when it's uncertain, so you can't tell when to trigger the fallback.
-- The fallback mode (searching all stores) gets expensive as the number of stores and entries grows.
+- 每次读写都触发一次 LLM 分类调用。每次操作多出 200-500 毫秒延迟，在高吞吐系统中会累积。
+- 分类器选错记忆类型时，数据进错存储。系统永远不会去数据真正所在的地方检索，你自然查不到结果。
+- 横跨多种类型的内容（比如「昨天的会上，我们把退款期限定成了 14 天」）需要多标签分类。缺了它，路由器会漏掉相关结果。
+- LLM 分类器没有置信度分数。它直接做出硬路由决策，不确定时也不发出信号，所以你无法判断什么时候该触发回退。
+- 回退模式（检索所有存储）的代价随存储和条目数量增长而变高。
 
 ## FAQ
 
-### Q: What is Memory Routing in agent memory?
+### 问：智能体记忆里的记忆路由是什么？
 
-**A:** Memory Routing classifies each memory operation by content type and routes it to the correct specialized store. Instead of putting everything in one memory, a router decides: "this is a fact" (send to semantic memory), "this is an experience" (send to episodic memory), "this is a procedure" (send to procedural memory). The router can use an LLM classifier, keyword rules, or embedding-based clustering. It acts as the traffic controller for a multi-store memory architecture.
+**答：** 记忆路由按内容类型给每条记忆操作分类，并把它路由到正确的专用存储。路由器不把所有东西放进同一种记忆，而是做判断：「这是事实」（送语义记忆）、「这是经历」（送情景记忆）、「这是操作流程」（送程序性记忆）。路由器可以用 LLM 分类器、关键词规则或基于嵌入的聚类。它是多存储记忆架构的调度中枢。
 
-### Q: When should I use Memory Routing instead of Hierarchical Memory Layers?
+### 问：什么时候该用记忆路由，而不是分层记忆？
 
-**A:** Use Memory Routing when you have multiple memory stores organized by content type (semantic, episodic, procedural). Hierarchical Memory Layers (technique 13) routes by access frequency across hot/warm/cold tiers within a single store. Routing is about "what kind of memory is this?" while hierarchy is about "how often do we access this?" If your agent has distinct memory types that need different storage and retrieval strategies, routing is the right pattern. Many production systems use both.
+**答：** 当你有多个按内容类型组织的记忆存储（语义、情景、程序性）时，用记忆路由。分层记忆（技术 13）是在单个存储内部，按访问频率在热/温/冷层之间路由。路由回答的是「这是哪种记忆？」，分层回答的是「我们多久访问一次？」。如果你的智能体有多种记忆类型，需要不同的存储和检索策略，路由就是正确的模式。很多生产系统两者都用。
 
-### Q: What are the limits or failure modes of Memory Routing?
+### 问：记忆路由有哪些局限或失败模式？
 
-**A:** The router can misclassify content, sending a fact to episodic memory or a procedure to semantic memory. LLM-based routing adds latency (100-300ms) per operation. Rule-based routing is faster but brittle and misses edge cases. Ambiguous content (a fact embedded in a story) may not have a clear single destination. If the router fails silently, memories end up in the wrong store and become unretrievable through the expected query path. Testing coverage for routing logic is essential.
+**答：** 路由器可能误分类，把事实送进情景记忆，或把操作流程送进语义记忆。基于 LLM 的路由每次操作增加延迟（100-300 毫秒）。基于规则的路由更快，但脆弱、覆盖不到边角情况。模糊内容（藏在故事里的事实）可能没有单一明确的去处。路由器一旦悄悄出错，记忆就进了错误的存储，从预期的查询路径再也找不回来。路由逻辑的测试覆盖必不可少。
 
-### Q: Can I combine Memory Routing with another memory technique?
+### 问：记忆路由能和其他记忆技术组合吗？
 
-**A:** Yes. Memory Routing is inherently a composition pattern. It sits in front of techniques 09 (Episodic Memory), 10 (Semantic Memory), and 11 (Procedural Memory), routing content to each. On the retrieval side, it decides which stores to query for a given request. Add technique 13 (Hierarchical Memory Layers) within each store for access-frequency optimization. This creates a two-dimensional organization: by content type (routing) and by access pattern (hierarchy).
+**答：** 可以。记忆路由本身就是一种组合模式。它位于技术 09（情景记忆）、10（语义记忆）和 11（程序性记忆）前面，把内容路由到各个存储。在检索侧，它决定一次请求该查哪些存储。再在每个存储内部加上技术 13（分层记忆），按访问频率优化。这就形成二维组织：按内容类型（路由）和按访问模式（分层）。
 
-### Q: What library or framework can I use to skip the implementation work?
+### 问：有什么库或框架能省掉自己实现的工作？
 
-**A:** Letta/MemGPT (technique 26) implements routing between core, recall, and archival memory through the agent's own function calls. Zep (technique 27) routes between conversation history and knowledge graph storage automatically. No major framework provides a standalone routing class. For custom builds, implement a classifier (LLM-based or rule-based) that tags each memory operation and dispatches it to the appropriate store. The routing logic typically requires 50-150 lines of Python.
+**答：** Letta/MemGPT（技术 26）通过智能体自己的函数调用，实现核心记忆、召回记忆和归档记忆之间的路由。Zep（技术 27）在对话历史和知识图谱存储之间自动路由。没有哪个主流框架提供独立的路由类。自己实现时，写一个分类器（基于 LLM 或规则）给每条记忆操作打标签，再分发到对应的存储。路由逻辑通常需要 50-150 行 Python。
 
-## References
+## 参考文献
 
 - Packer, C., et al. (2023). ["MemGPT: Towards LLMs as Operating Systems."](https://arxiv.org/abs/2310.08560) arXiv:2310.08560.
 - Zhang, Z., et al. (2024). ["A Survey on the Memory Mechanism of Large Language Model Based Agents."](https://arxiv.org/abs/2404.13501) arXiv:2404.13501.
-- Lewis, P., et al. (2020). ["Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks."](https://arxiv.org/abs/2005.11401) arXiv:2005.11401.
+- Lewis, P., et al. (2020). ["Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks,"](https://arxiv.org/abs/2005.11401) arXiv:2005.11401.
 - Weston, J., Chopra, S., & Bordes, A. (2015). ["Memory Networks."](https://arxiv.org/abs/1410.3916) arXiv:1410.3916.
 - Park, J. S., et al. (2023). ["Generative Agents: Interactive Simulacra of Human Behavior."](https://arxiv.org/abs/2304.03442) arXiv:2304.03442.
 
-## Related Techniques
+## 相关技术
 
-- [**13 Hierarchical Memory Layers**](../13_hierarchical_memory_layers/) - Routing directs by content type. Hierarchical layers add a second axis: routing across hot, warm, and cold storage tiers.
-- [**09 Episodic Memory**](../09_episodic_memory/) - One of the three specialized stores a router dispatches to. Stores event-based "what happened" memories.
-- [**10 Semantic Memory**](../10_semantic_memory/) - The factual knowledge store in a routed architecture. Handles "what is true" queries.
-- [**26 Letta/MemGPT Patterns**](../26_letta_memgpt_patterns/) - Implements built-in memory routing between core memory and archival storage.
+- [**13 分层记忆**](../13_hierarchical_memory_layers/) - 路由按内容类型导向。分层增加第二个维度：在热、温、冷存储层之间路由。
+- [**09 情景记忆**](../09_episodic_memory/) - 路由器分发目标之一。存放基于事件的「发生了什么」记忆。
+- [**10 语义记忆**](../10_semantic_memory/) - 路由架构中的事实知识存储。处理「什么是对的」类查询。
+- [**26 Letta/MemGPT 模式**](../26_letta_memgpt_patterns/) - 实现核心记忆与归档存储之间的内置记忆路由。
 
 ---
 

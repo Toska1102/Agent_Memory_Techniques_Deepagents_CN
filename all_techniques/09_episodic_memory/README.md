@@ -1,86 +1,86 @@
-# Episodic Memory
+# 情景记忆（Episodic Memory）
 
 <p align="center">
-  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/09_episodic_memory/episodic_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/09_episodic_memory/episodic_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="在 Colab 中打开"/></a>
 </p>
 
-## 📖 At a Glance
+## 📖 速览
 
-| Difficulty | Time | Prerequisites |
+| 难度 | 耗时 | 前置要求 |
 |------------|------|---------------|
-| Intermediate | ~30 min | Python 3.8+, `OPENAI_API_KEY`, understanding of 06 Vector Store Memory recommended |
+| 中级 | 约 30 分钟 | Python 3.8+、`LLM_API_KEY`、建议先理解 06 向量库记忆 |
 
-This technique is for developers building agents that need to recall specific past experiences with contextual detail, similar to human autobiographical memory.
+这项技术面向这样的开发者：你需要智能体带着上下文细节回忆具体的过往经历，类似人类的自传体记忆（autobiographical memory）。
 
 ## TL;DR
 
-- **What it is:** **Episodic Memory** captures whole conversation sessions as discrete episodes indexed by time and topic for cross-session recall.
-- **When you need it:** Your agent must remember what happened in a specific past session, not isolated facts.
-- **The trade-off:** Episode boundary detection can be too coarse or too fine, and storage grows with every session.
-- **Closest alternative in this repo:** 10 Semantic Memory stores distilled, context-free facts rather than timestamped experiences.
+- **是什么：** **情景记忆**把整段对话会话保存成一个个独立的片段（episode），按时间和主题建立索引，供跨会话回忆。
+- **什么时候需要：** 你的智能体要记住某个具体过往会话里发生了什么，而不是孤立的事实。
+- **代价：** 片段边界检测可能切得太粗或太细，存储随每个会话不断增长。
+- **本仓库中最接近的替代：** 10 语义记忆存储提炼后、与上下文无关的事实，而不是带时间戳的经历。
 
-## Description
+## 描述
 
-You don't remember your life as a flat list of facts. You remember episodes: the meeting where you pivoted the product, the debugging session that took all afternoon. Episodic Memory brings this structure to LLM agent memory by capturing conversation sessions as discrete episodes, each indexed by time and topic. The agent searches episode summaries using semantic search and temporal indexing to find relevant past experiences. This makes it especially valuable for coaching agents, project management assistants, and multi-session chatbots where users expect recall across sessions.
+你不会把自己的生活记成一张平铺的事实清单。你记住的是一个个片段：决定产品转型的那次会议，耗掉一整个下午的调试。情景记忆把这种结构带给 LLM 智能体记忆：把对话会话保存成独立的片段，每个片段按时间和主题建立索引。智能体用语义搜索和时序索引搜索片段摘要，找到相关的过往经历。这让它在教练型智能体、项目管理助手，以及用户期望跨会话回忆的多会话聊天机器人里特别有价值。
 
-Episodic Memory brings this capability to AI agents. It captures entire conversation sessions (or meaningful segments) as discrete episodes. Each episode is indexed by time, topic, and outcome. This lets the agent recall "what happened when" across sessions.
+情景记忆把这个能力带给 AI 智能体。它把整段对话会话（或有意义的部分）保存成独立的片段。每个片段按时间、主题和结果建立索引。这样智能体就能跨会话回忆起「什么时候发生了什么」。
 
-Think of it like a journal with chapters. Each chapter covers one session or topic. When you need to find something, you scan chapter titles (summaries) instead of re-reading every page. The agent does the same: it searches episode summaries to find past experiences relevant to the current question.
+把它想成一本分章的日记。每章覆盖一个会话或一个主题。要找什么东西时，你扫一眼章节标题（摘要），而不是重读每一页。智能体做的是同一件事：搜索片段摘要，找到与当前问题相关的过往经历。
 
-This matters for agents that operate across many sessions. A coaching agent needs to recall what goals were set last week. A project management agent needs to remember what was decided three days ago. Without episodic memory, each session starts from scratch.
+这对横跨多个会话的智能体很重要。教练型智能体需要想起上周定了什么目标。项目管理智能体需要记住三天前做了什么决定。没有情景记忆，每个会话都从零开始。
 
-**Keywords:** agent memory, LLM agent, episodic memory, episode boundaries, temporal indexing, semantic search, cross-session memory, conversation history, multi-session agents
+**关键词：** 智能体记忆、LLM 智能体、情景记忆、片段边界、时序索引、语义搜索、跨会话记忆、对话历史、多会话智能体
 
-## What You'll Learn
+## 你会学到什么
 
-The [notebook](./episodic_memory.ipynb) walks you through a complete implementation:
+[notebook](./episodic_memory.ipynb) 带你完成一个完整实现：
 
-1. **Episode data model**: a dataclass that stores messages, timestamps, summaries, topic tags, and embeddings.
-2. **Boundary detection**: session-based (explicit `end_session()`) and topic-based (LLM detects topic shifts).
-3. **Episode finalization**: LLM-generated summaries, topic extraction, and embedding computation.
-4. **Retrieval**: combined scoring of recency and semantic similarity to find relevant past episodes.
-5. **Prompt injection**: wiring retrieved episode summaries into the LLM system prompt.
-6. **Multi-session example**: a project-coaching agent across three sessions, with a recall test.
-7. **Persistence**: JSON serialization for saving and loading episodes.
+1. **片段数据模型**：一个 dataclass，存储消息、时间戳、摘要、主题标签和嵌入。
+2. **边界检测**：按会话（显式调用 `end_session()`）和按主题（LLM 检测主题切换）两种方式。
+3. **片段定稿**：LLM 生成摘要、抽取主题、计算嵌入。
+4. **检索**：综合新近度和语义相似度打分，找出相关的过往片段。
+5. **提示词注入**：把检索到的片段摘要接入 LLM 系统提示词。
+6. **多会话示例**：一个跨三个会话的项目教练智能体，附回忆测试。
+7. **持久化**：用 JSON 序列化保存和加载片段。
 
-## Key Concepts
+## 关键概念
 
-- **Episode boundaries**: defining where one episode ends and another begins. Boundaries can be session-based, topic-based, or time-based.
-- **Temporal indexing**: each episode is tagged with timestamps (start, end). This enables time-based queries.
-- **Episode summaries**: short LLM-generated text that captures the gist of an episode. These make retrieval fast.
-- **Semantic retrieval**: using embeddings and cosine similarity to find episodes related to the current query.
-- **Episodic vs. semantic memory**: episodic memory stores specific experiences. Semantic memory stores generalized knowledge. Both serve different roles.
+- **片段边界**：界定一个片段在哪里结束、下一个片段从哪里开始。边界可以按会话、按主题或按时间划分。
+- **时序索引**：每个片段都带上时间戳（开始、结束）。这让你能做基于时间的查询。
+- **片段摘要**：概括片段大意的短文本，由 LLM 生成。摘要让检索变快。
+- **语义检索**：用嵌入和余弦相似度找出与当前查询相关的片段。
+- **情景记忆 vs. 语义记忆**：情景记忆存储具体经历。语义记忆存储提炼后的知识。两者角色不同。
 
-## When to Use
+## 什么时候用
 
-- Multi-session agents where users expect the agent to remember previous interactions.
-- Project management or coaching agents that need to track progress over time.
-- Agents that must answer "when did we..." or "what happened during..." style questions.
-- Scenarios where the temporal sequence of events matters for reasoning.
+- 用户期望智能体记得之前交互的多会话智能体。
+- 需要长期跟踪进展的项目管理或教练型智能体。
+- 必须回答「我们什么时候……」「那段时间发生了什么」这类问题的智能体。
+- 事件的时序顺序对推理很重要的场景。
 
-## Limitations
+## 局限
 
-- Episode boundary detection can produce segments that are too fine or too coarse.
-- Summaries lose fine-grained detail. Specific numbers or facts may be lost.
-- Retrieval adds latency (embedding call plus episode scan on every turn).
-- Storage grows with every session. Long-lived agents need pruning or archival strategies.
+- 片段边界检测可能切得太细或太粗。
+- 摘要会丢失细粒度细节。具体的数字或事实可能丢失。
+- 检索增加延迟（每轮一次嵌入调用加一次片段扫描）。
+- 存储随每个会话增长。长期运行的智能体需要修剪或归档策略。
 
-## Architecture
+## 架构
 
 <p align="center">
-  <img src="../../images/diagrams/09_episodic_memory.svg" alt="Episodic Memory Architecture" width="720"/>
+  <img src="../../images/diagrams/09_episodic_memory.svg" alt="情景记忆架构图" width="720"/>
 </p>
 
-## How It Works
+## 工作原理
 
-1. The agent collects messages into a buffer during the conversation.
-2. A boundary detector decides when to close the current episode. It can split by session end or by topic shift (detected via an LLM call).
-3. The agent finalizes the episode: it generates a summary, extracts topic tags, and computes an embedding (a numerical fingerprint) of the summary.
-4. The finalized episode goes into persistent storage, indexed by time and topic.
-5. On a new query, the agent scores stored episodes using a mix of semantic similarity and recency.
-6. The top-scoring episode summaries are injected into the system prompt so the LLM can reference past experiences.
+1. 对话进行时，智能体把消息收进缓冲区。
+2. 边界检测器决定何时关闭当前片段。它可以按会话结束切分，也可以按主题切换切分（通过一次 LLM 调用检测）。
+3. 智能体把片段定稿：生成摘要、抽取主题标签、计算摘要的嵌入（一种数值指纹）。
+4. 定稿的片段进入持久化存储，按时间和主题建立索引。
+5. 新查询到来时，智能体用语义相似度与新近度的混合分数给存储的片段打分。
+6. 得分最高的片段摘要被注入系统提示词，LLM 因此能引用过往经历。
 
-## References
+## 参考文献
 
 - [Tulving, "Episodic Memory: From Mind to Brain," Annual Review of Psychology, 2002](https://doi.org/10.1146/annurev.psych.53.100901.135114)
 - [Park et al., "Generative Agents: Interactive Simulacra of Human Behavior," UIST 2023](https://arxiv.org/abs/2304.03442)
@@ -88,34 +88,34 @@ The [notebook](./episodic_memory.ipynb) walks you through a complete implementat
 - [Conway, "Episodic Memories," Neuropsychologia, 2009](https://doi.org/10.1016/j.neuropsychologia.2009.02.003)
 - [OpenAI Embeddings Guide](https://platform.openai.com/docs/guides/embeddings?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
 
-## Related Techniques
+## 相关技术
 
-- [**10 Semantic Memory**](../10_semantic_memory/) - Stores distilled facts rather than full episodes, a natural complement to episodic memory.
-- [**14 Memory Consolidation**](../14_memory_consolidation/) - Compresses and consolidates episodes over time to save storage.
-- [**21 Cross-Session Memory**](../21_cross_session_memory/) - A broader pattern for persisting any memory type across sessions.
-- [**18 Temporal Memory**](../18_temporal_memory/) - Focuses on time-aware retrieval and ordering, a key ingredient of episodic recall.
+- [**10 语义记忆**](../10_semantic_memory/) - 存储提炼后的事实而非完整片段，是情景记忆的天然补充。
+- [**14 记忆巩固**](../14_memory_consolidation/) - 随时间推移压缩并巩固片段，节省存储。
+- [**21 跨会话记忆**](../21_cross_session_memory/) - 让任意类型的记忆跨会话留存的更宽泛模式。
+- [**18 时序记忆**](../18_temporal_memory/) - 专注时间感知的检索与排序，是情景回忆的关键成分。
 
-## FAQ
+## 常见问题
 
-### Q: What is Episodic Memory in agent memory?
+### 问：智能体记忆里的情景记忆是什么？
 
-**A:** Episodic Memory captures whole conversation sessions or task executions as discrete episodes, indexed by time and topic. Each episode preserves the full context of what happened, when it happened, and what the outcome was. This mirrors human episodic memory: recalling specific experiences rather than abstract facts. Agents use it to say "Last Tuesday, when we debugged the auth issue, we found the token was expired." It stores experiences, not distilled knowledge.
+**答：** 情景记忆把整段对话会话或任务执行保存成独立的片段，按时间和主题建立索引。每个片段都保留完整的上下文：发生了什么、什么时候发生、结果如何。这对应人类的情景记忆：回忆具体经历，而不是抽象事实。智能体用它说出「上周二我们调试认证问题时，发现 token 过期了」。它存储的是经历，不是提炼后的知识。
 
-### Q: When should I use Episodic Memory instead of Semantic Memory?
+### 问：什么时候该用情景记忆，而不是语义记忆？
 
-**A:** Use Episodic Memory when the agent needs to recall specific past interactions with full context: who said what, when, and what happened next. Semantic Memory (technique 10) strips away context to store timeless facts like "user prefers dark mode." If your agent benefits from recalling "the last time we tried approach X, it failed because of Y," that is episodic recall. Use semantic memory when you only need the extracted conclusion, not the story behind it.
+**答：** 当智能体需要带着完整上下文回忆具体的过往交互时，用情景记忆：谁说了什么、什么时候说的、接下来发生了什么。语义记忆（技术 10）剥离上下文，存储超越时间的事实，比如「用户偏好深色模式」。如果你的智能体能从「上次我们试方案 X 时，因为 Y 失败了」这类回忆中受益，那就是情景回忆。如果你只需要提炼后的结论，不需要结论背后的故事，就用语义记忆。
 
-### Q: What are the limits or failure modes of Episodic Memory?
+### 问：情景记忆的局限和失效模式有哪些？
 
-**A:** Storage grows linearly with the number of episodes. Without pruning or summarization, retrieval slows as episodes accumulate into the hundreds or thousands. Retrieving the right episode depends on good indexing (time, topic tags, embeddings). If episodes are poorly segmented (too long or too short), retrieval quality drops. There is also redundancy: the same fact may appear across many episodes, wasting tokens when multiple episodes are retrieved.
+**答：** 存储随片段数量线性增长。没有修剪或摘要化，片段累积到成百上千时，检索会变慢。能否检索到对的片段，取决于索引质量（时间、主题标签、嵌入）。片段切分不好（太长或太短），检索质量就会下降。还有冗余问题：同一个事实可能出现在很多片段里，一次取回多个片段就会浪费 token。
 
-### Q: Can I combine Episodic Memory with another memory technique?
+### 问：情景记忆能和其他记忆技术组合吗？
 
-**A:** Yes. The classic pairing is with technique 10 (Semantic Memory). Episodes preserve the full experience; semantic memory distills reusable facts from those episodes. Technique 14 (Memory Consolidation) can periodically process episodes to extract key facts, resolve contradictions, and archive or delete stale episodes. This episodic-to-semantic pipeline mimics how human memory consolidates experiences into long-term knowledge during sleep.
+**答：** 能。经典搭配是技术 10（语义记忆）：片段保留完整经历，语义记忆从片段中提炼可复用的事实。技术 14（记忆巩固）可以定期处理片段，抽取关键事实、解决矛盾、归档或删除过时片段。这条从情景到语义的流程，模仿了人类在睡眠中把经历巩固成长期知识的方式。
 
-### Q: What library or framework can I use to skip the implementation work?
+### 问：有什么库或框架可以省掉自己实现的工作？
 
-**A:** Letta/MemGPT (technique 26) stores conversation history as episodes in its recall memory tier. Zep (technique 27) maintains session-level episodic records with automatic fact extraction. LangChain does not have a dedicated episodic memory class, but you can build one using `ChatMessageHistory` with session IDs and a vector store for retrieval. Mem0 (technique 25) tracks user-level memories that have episodic characteristics when configured per session.
+**答：** Letta/MemGPT（技术 26）把对话历史作为片段存进它的 recall memory（回忆记忆）层。Zep（技术 27）维护会话级的情景记录，并自动抽取事实。LangChain 没有专门的情景记忆类，但你可以用 `ChatMessageHistory` 加会话 ID、再用向量库做检索来搭建一个。Mem0（技术 25）跟踪用户级记忆，按会话配置时也会带上情景特征。
 
 ---
 

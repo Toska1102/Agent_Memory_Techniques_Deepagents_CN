@@ -1,44 +1,44 @@
-# Summary Buffer Memory
+# 摘要缓冲记忆（Summary Buffer Memory）
 
 <p align="center">
-  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/04_summary_buffer_memory/summary_buffer_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/04_summary_buffer_memory/summary_buffer_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="在 Colab 中打开"/></a>
 </p>
 
-## 📖 At a Glance
+## 📖 速览
 
-| Difficulty | Time | Prerequisites |
+| 难度 | 耗时 | 前置要求 |
 |------------|------|---------------|
-| Beginner | ~25 min | Python 3.8+, `OPENAI_API_KEY`, understanding of 01 Conversation Buffer Memory and 03 Summary Memory recommended |
+| 初级 | 约 25 分钟 | Python 3.8+、`LLM_API_KEY`，建议先理解 01 对话缓冲记忆和 03 摘要记忆 |
 
-This technique is for developers who want the best of both worlds: exact recall of recent messages combined with compressed older context.
+这项技术面向想要两全其美的开发者：近期消息精确回忆，加上压缩后的较早上下文。
 
 ## TL;DR
 
-- **What it is:** **Summary Buffer Memory** keeps recent messages verbatim in a buffer while compressing older history into a running summary.
-- **When you need it:** You need exact recall of the last few turns and approximate recall of earlier conversation.
-- **The trade-off:** More complex to tune because you must balance buffer size, summary refresh rate, and token budget.
-- **Closest alternative in this repo:** 03 Summary Memory uses pure summarization without a verbatim buffer for recent turns.
+- **是什么：** **摘要缓冲记忆**把近期消息逐字保存在缓冲区里，同时把更早的历史压缩成一份滚动摘要。
+- **什么时候需要：** 你需要对最近几轮的精确回忆，也需要对更早对话的大致记忆。
+- **代价：** 调参更复杂，你要平衡缓冲区大小、摘要刷新频率和 token 预算。
+- **本仓库中最接近的替代：** 03 摘要记忆用纯摘要，不为近期轮次保留逐字缓冲区。
 
-## Description
+## 描述
 
-Think of how you remember a long phone call with a friend. You recall the last few sentences almost word-for-word. That's your short-term memory. The earlier parts? You remember the gist, not the exact words. That's your long-term memory. Summary Buffer Memory works the same way: it keeps recent messages intact and compresses older ones into a summary.
+想想你怎么记住和朋友的一通长途电话。最后几句话你几乎能逐字复述。那是你的短期记忆。更早的部分？你记得大概意思，记不清原话。那是你的长期记忆。摘要缓冲记忆的工作方式相同：近期消息原样保留，较早的消息压缩成摘要。
 
-Summary Buffer Memory is a hybrid agent memory technique that combines conversation buffer and summary memory into one system. It keeps recent messages word-for-word while compressing older conversation history into a running LLM-generated summary. This dual-region design fits naturally into customer support agents, long-running chatbots, and any application that needs both precise recent context and historical awareness. The engineering challenge is tuning the transition threshold (the point where messages move from the buffer into the summary) and the token budget split between the two regions.
+摘要缓冲记忆是一种混合智能体记忆技术，把对话缓冲和摘要记忆合并成一个系统。它逐字保留近期消息，同时把更早的对话历史压缩成一份由 LLM 生成的滚动摘要。这种双区域设计天然适合客服智能体、长时间运行的聊天机器人，以及任何既需要精确近期上下文又需要历史感知的应用。工程上的难点在于调好转换阈值（消息从缓冲区移入摘要的临界点）和两个区域之间的 token 预算分配。
 
-**Keywords:** agent memory, summary buffer memory, LLM agent, hybrid memory, conversation history, token budget, incremental summarization, context window, chat memory, dual-region memory
+**关键词：** 智能体记忆、摘要缓冲记忆、LLM 智能体、混合记忆、对话历史、token 预算、增量摘要、上下文窗口、聊天记忆、双区域记忆
 
-## Key Concepts
+## 关键概念
 
-- **Buffer zone:** The most recent *k* messages stored word-for-word. These preserve exact wording, nuance, and details for immediate reasoning.
-- **Running summary:** A short paragraph that captures key facts and themes from all messages that have aged out of the buffer.
-- **Incremental summarization:** Instead of re-summarizing the full history each time, we fold newly evicted messages into the existing summary in a single LLM call.
-- **Transition threshold:** The point at which messages age out of the buffer and get folded into the summary. You can trigger it by message count or token count.
-- **Token budget allocation:** Deciding how many tokens to give to the summary versus the buffer. A typical split reserves 20-30% for the summary and 70-80% for recent messages.
+- **缓冲区（buffer zone）：** 逐字存储的最近 *k* 条消息。它们为即时推理保留精确措辞、语气和细节。
+- **滚动摘要（running summary）：** 一段短文字，概括所有已移出缓冲区的消息中的关键事实和主题。
+- **增量摘要（incremental summarization）：** 每次不重新总结全部历史，而是用一次 LLM 调用把新淘汰的消息并入现有摘要。
+- **转换阈值（transition threshold）：** 消息移出缓冲区、并入摘要的临界点。可以按消息条数触发，也可以按 token 数触发。
+- **token 预算分配（token budget allocation）：** 决定给摘要多少 token、给缓冲区多少 token。典型分配是摘要留 20-30%，近期消息留 70-80%。
 
-## Architecture
+## 架构
 
 <p align="center">
-  <img src="../../images/diagrams/04_summary_buffer_memory.svg" alt="Summary Buffer Memory architecture diagram" width="720"/>
+  <img src="../../images/diagrams/04_summary_buffer_memory.svg" alt="摘要缓冲记忆架构图" width="720"/>
 </p>
 
 <details><summary>Mermaid source</summary>
@@ -62,72 +62,72 @@ flowchart LR
 
 ---
 
-## How It Works
+## 工作原理
 
-1. New messages are appended to the buffer.
-2. When the buffer exceeds its configured threshold (for example, *t* tokens), the oldest buffer messages are removed.
-3. Those removed messages get incorporated into the running summary via an LLM summarization call.
-4. The next LLM prompt is assembled as: `[system] + [summary of older history] + [recent buffer messages]`.
-5. This cycle continues. The summary grows and compresses while the buffer always reflects the latest exchanges.
+1. 新消息追加进缓冲区。
+2. 当缓冲区超过配置的阈值（比如 *t* 个 token），淘汰最旧的缓冲消息。
+3. 这些消息通过一次 LLM 摘要调用并入滚动摘要。
+4. 下一条 LLM 提示词按 `[system] + [较早历史的摘要] + [近期缓冲消息]` 组装。
+5. 循环继续。摘要不断增长和压缩，缓冲区始终反映最近的交互。
 
-## When to Use
+## 何时使用
 
-- Medium to long conversations where you need both historical awareness and precise recent context.
-- Customer support bots that must reference the full issue history while responding accurately to the latest message.
-- Situations where pure summarization loses too much recent detail, but full buffer memory is too expensive.
+- 中等长度到长对话，既需要历史感知又需要精确的近期上下文。
+- 客服机器人：既要引用完整的问题历史，又要准确回应最新消息。
+- 纯摘要丢失太多近期细节、纯缓冲记忆又太贵的场景。
 
-## Limitations
+## 局限
 
-- More complex to build than either pure buffer or pure summary memory.
-- Requires tuning of buffer size, summary refresh frequency, and token budget split.
-- The summary can lose important detail after many rounds of incremental summarization.
-- Each eviction triggers an extra LLM call, which adds cost and latency.
+- 比纯缓冲或纯摘要记忆都更难构建。
+- 需要调缓冲区大小、摘要刷新频率和 token 预算分配。
+- 多轮增量摘要之后，摘要可能丢失重要细节。
+- 每次淘汰都触发一次额外的 LLM 调用，增加成本和延迟。
 
 ## Notebook
 
-See the [implemented notebook](./summary_buffer_memory.ipynb) for a complete, runnable implementation using the OpenAI SDK and tiktoken.
+完整可运行的实现见 [配套 notebook](./summary_buffer_memory.ipynb)，使用 deepagents、任意 OpenAI 兼容端点和 tiktoken。
 
-**What the notebook covers:**
-- Building `SummaryBufferMemory` from scratch with token-based eviction.
-- Incremental summarization with a dedicated summarizer prompt.
-- A 9-turn example conversation showing eviction and summary evolution.
-- Side-by-side token comparison with plain buffer memory.
+**notebook 内容：**
+- 从零构建 `SummaryBufferMemory`，按 token 数淘汰。
+- 用专门的摘要提示词做增量摘要。
+- 一段 9 轮的示例对话，展示淘汰过程和摘要演进。
+- 与纯缓冲记忆的 token 用量对比。
 
-## FAQ
+## 常见问题
 
-### Q: What is Summary Buffer Memory in agent memory?
+### 问：智能体记忆里的摘要缓冲记忆是什么？
 
-**A:** Summary Buffer Memory is a hybrid approach that keeps recent messages verbatim in a buffer while compressing older history into a running LLM-generated summary. This gives exact recall of the last K turns and approximate recall of everything before that. LangChain implements it as `ConversationSummaryBufferMemory` with a configurable `max_token_limit`. It balances the fidelity of buffer memory with the compression of summary memory.
+**答：** 摘要缓冲记忆是一种混合方案：近期消息逐字保存在缓冲区里，更早的历史压缩成一份由 LLM 生成的滚动摘要。这样你对最近 K 轮有精确回忆，对更早的内容有大致记忆。LangChain 把它实现为 `ConversationSummaryBufferMemory`，可配置 `max_token_limit`。它在缓冲记忆的保真度和摘要记忆的压缩率之间取得平衡。
 
-### Q: When should I use Summary Buffer Memory instead of Summary Memory?
+### 问：什么时候该用摘要缓冲记忆而不是摘要记忆？
 
-**A:** Use Summary Buffer Memory when you need exact quotes or details from the last few turns but also want long-conversation support. Pure Summary Memory (technique 03) compresses everything, including recent messages, losing verbatim detail. The buffer variant keeps the last 5-10 messages intact so the model can reference exact wording, code snippets, or numbers. Choose pure summary only when your token budget cannot afford any verbatim buffer.
+**答：** 当你既需要最近几轮的精确引文或细节，又想支持长对话时，用摘要缓冲记忆。纯摘要记忆（技术 03）压缩所有内容，包括近期消息，丢失逐字细节。缓冲变体完整保留最近 5-10 条消息，模型可以引用精确的措辞、代码片段或数字。只有当 token 预算连一点逐字缓冲都负担不起时，才选纯摘要。
 
-### Q: What are the limits or failure modes of Summary Buffer Memory?
+### 问：摘要缓冲记忆有哪些局限或失效方式？
 
-**A:** The older-than-buffer portion still suffers from summary drift and detail loss. Each eviction from the buffer triggers an LLM summarization call, adding latency (200-500ms) and cost. If the token limit is set too high, the buffer rarely triggers summarization and you get the same cost growth as Conversation Buffer Memory. If set too low, important recent messages get summarized too aggressively. Tuning the `max_token_limit` parameter requires experimentation for each use case.
+**答：** 缓冲区之外的部分仍受摘要漂移和细节丢失影响。每次从缓冲区淘汰消息都会触发一次 LLM 摘要调用，增加延迟（200-500ms）和成本。token 上限设得太高，缓冲区几乎不触发摘要，成本增长就和对话缓冲记忆一样快。设得太低，重要的近期消息会被过早压缩。为每个用例调好 `max_token_limit` 需要实验。
 
-### Q: Can I combine Summary Buffer Memory with another memory technique?
+### 问：可以把摘要缓冲记忆和其他记忆技术组合吗？
 
-**A:** Yes. Pair it with technique 06 (Vector Store Memory) to recover details lost during summarization. Write every message to a vector store before it enters the buffer. When the agent needs a specific fact from the summarized portion, retrieve it from the vector store by semantic search. This gives you three tiers: verbatim buffer for recent context, summary for general flow, and vector search for on-demand detail recovery.
+**答：** 可以。搭配技术 06（向量库记忆）可以找回摘要时丢失的细节。每条消息在进入缓冲区之前先写入向量库。当智能体需要摘要部分里的某个具体事实时，用语义搜索从向量库检索。这样就有三层：逐字缓冲负责近期上下文，摘要负责整体脉络，向量搜索负责按需找回细节。
 
-### Q: What library or framework can I use to skip the implementation work?
+### 问：有什么库或框架能省掉自己实现的工作？
 
-**A:** LangChain offers `ConversationSummaryBufferMemory` as a drop-in class with `max_token_limit` configuration. This is the most direct implementation. Letta/MemGPT (technique 26) uses a conceptually similar approach with its core memory (buffer) and archival memory (compressed storage). Zep (technique 27) provides managed summarization with automatic buffering. For custom implementations, the pattern requires roughly 50 lines of Python wrapping any LLM client.
+**答：** LangChain 提供 `ConversationSummaryBufferMemory`，配置 `max_token_limit` 即可开箱即用。这是最直接的实现。Letta/MemGPT（技术 26）在概念上类似：核心记忆（缓冲区）加归档记忆（压缩存储）。Zep（技术 27）提供托管式摘要和自动缓冲。自己实现的话，这个模式大约需要 50 行 Python，包住任意 LLM 客户端即可。
 
-## References
+## 参考文献
 
 - [LangChain ConversationSummaryBufferMemory](https://python.langchain.com/docs/modules/memory/types/summary_buffer?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
 - [MemGPT / Letta: Tiered Memory Management](https://arxiv.org/abs/2310.08560)
 - Packer et al., "MemGPT: Towards LLMs as Operating Systems," 2023
 - [LlamaIndex ChatSummaryMemoryBuffer](https://docs.llamaindex.ai/en/stable/api_reference/memory/?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
 
-## Related Techniques
+## 相关技术
 
-- [**01 Conversation Buffer Memory**](../01_conversation_buffer_memory/) - The full-buffer side of this hybrid. Useful when conversations are short enough that you don't need summarization.
-- [**03 Summary Memory**](../03_summary_memory/) - The summary side of this hybrid. Good for understanding pure summarization before adding a buffer region.
-- [**05 Token Buffer Memory**](../05_token_buffer_memory/) - A token-aware alternative that trims by token count. Combine its precision with this technique's summarization for even tighter control.
-- [**26 Letta/MemGPT Patterns**](../26_letta_memgpt_patterns/) - Implements tiered memory ideas similar to this technique at a larger architectural scale.
+- [**01 对话缓冲记忆**](../01_conversation_buffer_memory/) - 这个混合方案的全缓冲一侧。对话短到不需要摘要时很有用。
+- [**03 摘要记忆**](../03_summary_memory/) - 这个混合方案的摘要一侧。加缓冲区之前，先用它理解纯摘要。
+- [**05 token 缓冲记忆**](../05_token_buffer_memory/) - 按 token 数修剪的替代方案。把它的精确控制和本技术的摘要结合，控制更细。
+- [**26 Letta/MemGPT 模式**](../26_letta_memgpt_patterns/) - 在更大的架构尺度上实现类似的分层记忆思想。
 
 ---
 

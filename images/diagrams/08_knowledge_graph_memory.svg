@@ -22,7 +22,7 @@
   <text x="240" y="116" text-anchor="middle" font-size="15" font-weight="bold" fill="white">💬  Each Conversation Turn</text>
 
   <g><rect x="65" y="150" width="350" height="50" rx="12" fill="white" filter="url(#soft)"/><text x="240" y="180" text-anchor="middle" font-size="13" font-weight="bold" fill="#1f2937">👤  User Message</text></g>
-  <g><rect x="65" y="215" width="350" height="50" rx="12" fill="url(#gTool)" opacity="0.92" filter="url(#soft)"/><text x="240" y="237" text-anchor="middle" font-size="13" font-weight="bold" fill="white">🔧  Triple Extractor</text><text x="240" y="255" text-anchor="middle" font-size="11" fill="#fff7ed">Claude tool-use → (S, P, O)</text></g>
+  <g><rect x="65" y="215" width="350" height="50" rx="12" fill="url(#gTool)" opacity="0.92" filter="url(#soft)"/><text x="240" y="237" text-anchor="middle" font-size="13" font-weight="bold" fill="white">🔧  Triple Extractor</text><text x="240" y="255" text-anchor="middle" font-size="11" fill="#fff7ed">tool calling → (S, P, O)</text></g>
   <g><rect x="65" y="280" width="350" height="40" rx="12" fill="white" filter="url(#soft)"/><text x="240" y="306" text-anchor="middle" font-size="12" font-family="monospace" fill="#1f2937">(Alice, manages, Bob)  ·  (Bob, works_on, ProjectX)</text></g>
 
   <!-- Graph (center) -->

@@ -1,0 +1,150 @@
+{
+  "nodes": [
+    "Priya",
+    "Spotify",
+    "data scientist",
+    "User",
+    "Carlos",
+    "Spotify recommendations team",
+    "Aisha",
+    "machine learning engineer",
+    "Project Wavelength",
+    "music recommendation engine",
+    "data science",
+    "machine learning",
+    "MusicGraph",
+    "Spotify data engineering team",
+    "Alex",
+    "chef",
+    "Basil & Lime",
+    "Portland",
+    "MusicGraph dataset"
+  ],
+  "edges": [
+    {
+      "subject": "Priya",
+      "predicate": "works_at",
+      "object": "Spotify"
+    },
+    {
+      "subject": "Priya",
+      "predicate": "has_role",
+      "object": "data scientist"
+    },
+    {
+      "subject": "User",
+      "predicate": "reports_to",
+      "object": "Carlos"
+    },
+    {
+      "subject": "User",
+      "predicate": "works_on",
+      "object": "Project Wavelength"
+    },
+    {
+      "subject": "User",
+      "predicate": "has_expertise_in",
+      "object": "data science"
+    },
+    {
+      "subject": "User",
+      "predicate": "collaborates_with",
+      "object": "Aisha"
+    },
+    {
+      "subject": "User",
+      "predicate": "partner_of",
+      "object": "Alex"
+    },
+    {
+      "subject": "Carlos",
+      "predicate": "leads",
+      "object": "Spotify recommendations team"
+    },
+    {
+      "subject": "Carlos",
+      "predicate": "manages",
+      "object": "Aisha"
+    },
+    {
+      "subject": "Carlos",
+      "predicate": "manages",
+      "object": "User"
+    },
+    {
+      "subject": "Spotify recommendations team",
+      "predicate": "part_of",
+      "object": "Spotify"
+    },
+    {
+      "subject": "Aisha",
+      "predicate": "has_role",
+      "object": "machine learning engineer"
+    },
+    {
+      "subject": "Aisha",
+      "predicate": "works_on",
+      "object": "Project Wavelength"
+    },
+    {
+      "subject": "Aisha",
+      "predicate": "has_background_in",
+      "object": "machine learning"
+    },
+    {
+      "subject": "Project Wavelength",
+      "predicate": "is_a",
+      "object": "music recommendation engine"
+    },
+    {
+      "subject": "Project Wavelength",
+      "predicate": "depends_on",
+      "object": "MusicGraph"
+    },
+    {
+      "subject": "Project Wavelength",
+      "predicate": "depends_on",
+      "object": "MusicGraph dataset"
+    },
+    {
+      "subject": "Project Wavelength",
+      "predicate": "project_of",
+      "object": "Spotify"
+    },
+    {
+      "subject": "MusicGraph",
+      "predicate": "maintained_by",
+      "object": "Spotify data engineering team"
+    },
+    {
+      "subject": "Spotify data engineering team",
+      "predicate": "part_of",
+      "object": "Spotify"
+    },
+    {
+      "subject": "Alex",
+      "predicate": "works_as",
+      "object": "chef"
+    },
+    {
+      "subject": "Alex",
+      "predicate": "runs",
+      "object": "Basil & Lime"
+    },
+    {
+      "subject": "Alex",
+      "predicate": "partner_of",
+      "object": "User"
+    },
+    {
+      "subject": "Basil & Lime",
+      "predicate": "located_in",
+      "object": "Portland"
+    },
+    {
+      "subject": "MusicGraph dataset",
+      "predicate": "maintained_by",
+      "object": "Spotify data engineering team"
+    }
+  ]
+}

@@ -330,7 +330,7 @@ pip install -r requirements.txt
 
 # 配置 API 密钥
 cp .env.example .env
-# 编辑 .env，填入你的 OPENAI_API_KEY 和/或 ANTHROPIC_API_KEY
+# 编辑 .env，填入你的 LLM_API_KEY、LLM_BASE_URL 和 LLM_MODEL_NAME
 
 # 启动 Jupyter，从第一个技术开始
 jupyter notebook all_techniques/01_conversation_buffer_memory/

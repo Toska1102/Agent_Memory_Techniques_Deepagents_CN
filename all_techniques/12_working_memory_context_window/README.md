@@ -1,51 +1,51 @@
-# Working Memory & Context Window Management
+# 工作记忆与上下文窗口管理
 
 <p align="center">
-  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/12_working_memory_context_window/working_memory_context_window.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/12_working_memory_context_window/working_memory_context_window.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="在 Colab 中打开"/></a>
 </p>
 
-## 📖 At a Glance
+## 📖 速览
 
-| Difficulty | Time | Prerequisites |
+| 难度 | 时间 | 前置要求 |
 |------------|------|---------------|
-| Advanced | ~45 min | Python 3.8+, `OPENAI_API_KEY`, understanding of 02 Sliding Window Memory and 05 Token Buffer Memory recommended |
+| 高级 | 约 45 分钟 | Python 3.8+、`LLM_API_KEY`，建议先了解技术 02 滑动窗口记忆和技术 05 token 缓冲记忆 |
 
-This technique is for developers building long-running agents that need to intelligently manage what stays in the context window using salience scoring and eviction policies.
+这项技术面向构建长时间运行智能体的开发者：用显著性评分（salience scoring）和淘汰策略（eviction policy），智能地管理什么留在上下文窗口里。
 
 ## TL;DR
 
-- **What it is:** **Working Memory** manages what stays in the context window using salience scoring and dynamic eviction policies.
-- **When you need it:** You run long-running agents where naive FIFO eviction drops high-value information too early.
-- **The trade-off:** Embedding-based salience scoring adds latency per turn and measures similarity, not logical importance.
-- **Closest alternative in this repo:** 02 Sliding Window Memory uses naive FIFO eviction without scoring or pinning.
+- **它是什么：** **工作记忆（Working Memory）**用显著性评分和动态淘汰策略管理什么留在上下文窗口里。
+- **什么时候需要：** 你运行的智能体存活很久，朴素的 FIFO 淘汰会过早丢掉高价值信息。
+- **代价是什么：** 基于嵌入的显著性评分给每一轮增加延迟，而且它度量的是相似度，不是逻辑重要性。
+- **本仓库里最接近的替代：** 技术 02 滑动窗口记忆用朴素的 FIFO 淘汰，不打分，也不固定。
 
-## Overview
+## 概述
 
-Imagine you're juggling four balls. Someone tosses you a fifth, so you have to drop one. The trick is choosing which ball to drop. Working Memory & Context Window Management is the agent memory technique that solves this choice for LLM agents. It controls what stays inside the context window (the text a model can "see" at once) using salience scoring and eviction policies (rules for removing low-value items). You'll need it for long-running chatbots or research assistants that must track many facts under a tight token budget.
+想象你在抛接四个球。有人又扔来第五个，你必须放下一个。诀窍在于选哪个放下。工作记忆与上下文窗口管理就是替 LLM 智能体做这个选择的技术。它用显著性评分和淘汰策略（移除低价值条目的规则）控制什么留在上下文窗口（模型一次能「看到」的文本）里。长时间运行的聊天机器人或研究助手要在紧张的 token 预算下追踪大量事实，你需要这项技术。
 
-An LLM's context window (the text the model can "see" at once) works the same way. Whether it's 4,000 tokens or a million, there's always a limit. What lives inside that window decides how well the agent reasons. A naive approach treats the window like a queue: oldest messages fall off the end. This is a poor strategy. A critical instruction from the start of a conversation can vanish while irrelevant chatter stays.
+LLM 的上下文窗口（模型一次能「看到」的文本）道理相同。无论 4000 还是 100 万 token，总有上限。窗口里装着什么，决定智能体推理的好坏。朴素做法把窗口当队列：最旧的消息从队尾掉出去。这是个糟糕的策略。对话开头的关键指令可能消失，无关的闲聊却还留着。
 
-This technique draws from cognitive psychology. Baddeley's model of human working memory describes a limited-capacity system with an attention controller. That controller decides what stays in active awareness and what fades. Agents need the same thing: a management layer that scores, ranks, pins (protects from removal), and evicts (removes) context items based on recency, relevance, and importance.
+这项技术源自认知心理学。Baddeley 的人类工作记忆模型描述了一个容量有限、带注意控制器的系统。控制器决定什么留在主动意识里，什么淡出。智能体需要同样的东西：一个管理层，按新近度、相关性和重要性对上下文条目打分、排序、固定（保护）和淘汰（移除）。
 
-**Keywords:** agent memory, LLM agent, working memory, context window management, salience scoring, eviction policies, token budget, attention management, context prioritization
+**关键词：** 智能体记忆、LLM 智能体、工作记忆、上下文窗口管理、显著性评分、淘汰策略、token 预算、注意力管理、上下文优先级排序
 
-## Key Concepts
+## 核心概念
 
-- **Context window**: The text an LLM can "see" at once, bounded by a maximum token limit.
-- **Attention management**: Controlling which information occupies the context window at any moment, rather than letting it accumulate passively.
-- **Context prioritization**: Ranking items by relevance, recency, and importance to decide what stays.
-- **Pinned context**: Critical items (system instructions, user preferences, active goals) that stay in the window no matter what.
-- **Dynamic eviction policies**: Rules for removing low-priority items when the window fills up. Common approaches include LRU (Least Recently Used) and importance-weighted eviction.
-- **Salience scoring**: Assigning a numerical relevance score to each context element. "Salience" means "how much this matters right now."
-- **External memory store**: A place to archive evicted items so they're retrievable later.
+- **上下文窗口（context window）**：LLM 一次能「看到」的文本，受最大 token 数限制。
+- **注意力管理（attention management）**：控制任意时刻哪些信息占据上下文窗口，而不是让它被动累积。
+- **上下文优先级排序（context prioritization）**：按相关性、新近度和重要性给条目排序，决定什么留下。
+- **固定上下文（pinned context）**：无论如何都不被移除的关键条目（系统指令、用户偏好、进行中的目标）。
+- **动态淘汰策略（dynamic eviction policy）**：窗口满了以后移除低优先级条目的规则。常见做法有 LRU（最近最少使用）和按重要性加权淘汰。
+- **显著性评分（salience scoring）**：给每个上下文元素打一个数值相关性分。「显著性」指「它现在有多要紧」。
+- **外部记忆库（external memory store）**：归档被淘汰条目的地方，之后仍可检索。
 
-## Architecture
+## 架构
 
 <p align="center">
-  <img src="../../images/diagrams/12_working_memory_context_window.svg" alt="Working Memory Context Window architecture diagram" width="720"/>
+  <img src="../../images/diagrams/12_working_memory_context_window.svg" alt="工作记忆与上下文窗口架构图" width="720"/>
 </p>
 
-<details><summary>Mermaid source</summary>
+<details><summary>Mermaid 源码</summary>
 
 ```mermaid
 flowchart LR
@@ -72,75 +72,75 @@ flowchart LR
 
 ---
 
-## What the Notebook Covers
+## Notebook 内容
 
-The [notebook](./working_memory_context_window.ipynb) builds a complete context window management system from scratch using the OpenAI SDK:
+[notebook](./working_memory_context_window.ipynb) 用 deepagents 和任意 OpenAI 兼容端点从零构建一个完整的上下文窗口管理系统：
 
-1. **`ContextItem` data model**: Wraps text with metadata (token count, salience score, timestamps, pin status).
-2. **`SalienceScorer`**: Blends embedding similarity, exponential recency decay, and source importance weights.
-3. **`EvictionEngine`**: Two policies (LRU and importance-weighted LRU) for removing the least valuable items.
-4. **`ExternalMemoryStore`**: Archives evicted items with embeddings for later retrieval.
-5. **`ContextWindowManager`**: Orchestrates scoring, insertion, eviction, retrieval, and prompt assembly.
-6. **End-to-end demo**: A multi-turn travel planning conversation with a tight token budget that forces evictions and demonstrates the retrieval loop.
-7. **Policy comparison**: Side-by-side results from LRU vs. importance-weighted LRU.
+1. **`ContextItem` 数据模型**：把文本和元数据（token 数、显著性得分、时间戳、固定状态）包在一起。
+2. **`SalienceScorer`**：融合嵌入相似度、指数新近度衰减和来源重要性权重。
+3. **`EvictionEngine`**：两种策略（LRU 和重要性加权 LRU），移除价值最低的条目。
+4. **`ExternalMemoryStore`**：连同嵌入一起归档被淘汰条目，供日后检索。
+5. **`ContextWindowManager`**：统筹打分、插入、淘汰、检索和提示词组装。
+6. **端到端示例**：一段多轮旅行规划对话，token 预算很紧，会触发淘汰并展示检索回路。
+7. **策略比较**：并排展示 LRU 与重要性加权 LRU 的结果。
 
-## How It Works
+## 工作原理
 
-1. Each piece of context gets metadata: priority level, insertion time, last access time, and salience score.
-2. As new information arrives, the manager scores it and inserts it into the dynamic zone.
-3. When the context window nears capacity, eviction policies remove the lowest-scoring items.
-4. Pinned items are protected from eviction. Only an explicit action can change their priority.
-5. Evicted items move to the external memory store. They can be retrieved if they become relevant again.
+1. 每段上下文都带元数据：优先级、插入时间、最后访问时间和显著性得分。
+2. 新信息到来时，管理器给它打分并插入动态区。
+3. 上下文窗口接近容量上限时，淘汰策略移除得分最低的条目。
+4. 固定条目受保护，不会被淘汰。只有显式操作才能改变它们的优先级。
+5. 被淘汰的条目移入外部记忆库。它们重新变得相关时可以取回。
 
-## When to Use
+## 什么时候用
 
-- Long-running agent sessions that exceed the model's context window.
-- Multi-turn conversations where early context may become irrelevant or need refreshing.
-- Complex tasks where the agent tracks multiple sub-goals, documents, or data sources.
-- Cost-sensitive applications where you want predictable token budgets.
+- 长时间运行的智能体会话，超出模型的上下文窗口。
+- 多轮对话，早期上下文可能过时，或需要刷新。
+- 复杂任务，智能体要同时追踪多个子目标、文档或数据源。
+- 对成本敏感、需要可预测 token 预算的应用。
 
-## Limitations
+## 局限
 
-- Scoring overhead slows things down. Every new message triggers embedding calls and re-scoring, adding latency to each turn.
-- Embeddings measure semantic similarity, not logical importance. A message can be semantically distant from the current query but logically critical (e.g., "My flight leaves at 6 AM" while discussing dinner plans).
-- Evicted messages create gaps in conversation history. The model may produce responses that feel disconnected because it can't see the full thread.
-- This approach is more complex than a naive buffer. Scoring, eviction, archival, and retrieval add more surface area for bugs.
+- 评分开销拖慢速度。每条新消息都触发嵌入调用和重新打分，增加每轮延迟。
+- 嵌入度量语义相似度，不是逻辑重要性。一条消息可能语义上离当前查询很远，逻辑上却至关重要（比如一边讨论晚饭计划，一边说「我的航班早上 6 点起飞」）。
+- 被淘汰的消息在对话历史里留下空隙。模型看不到完整脉络，回复可能显得前后脱节。
+- 这个方案比朴素缓冲复杂。评分、淘汰、归档和检索带来更多出 bug 的地方。
 
 ## FAQ
 
-### Q: What is Working Memory in agent memory?
+### 问：智能体记忆里的工作记忆是什么？
 
-**A:** Working Memory manages what information stays in the LLM's context window at any given time. It uses salience scoring, dynamic eviction policies, and priority pinning to decide which memories, instructions, and retrieved context occupy the limited token budget. Unlike a naive sliding window, it evaluates each item's relevance to the current task. Think of it as an intelligent scheduler for the context window: the most important information stays, the least important gets evicted or compressed.
+**答：** 工作记忆管理任意时刻哪些信息留在 LLM 的上下文窗口里。它用显著性评分、动态淘汰策略和优先级固定，决定哪些记忆、指令和检索到的内容占据有限的 token 预算。和朴素滑动窗口不同，它评估每个条目与当前任务的相关性。把它想成上下文窗口的智能调度器：最重要的信息留下，最不重要的被淘汰或压缩。
 
-### Q: When should I use Working Memory instead of Sliding Window Memory?
+### 问：什么时候该用工作记忆，而不是滑动窗口记忆？
 
-**A:** Use Working Memory when your context window contains heterogeneous content like instructions, retrieved facts, conversation history, and tool results. Sliding Window Memory (technique 02) applies blind FIFO eviction, which may drop a critical instruction to keep a low-value chat turn. Working Memory scores each item by relevance and recency, ensuring high-value content survives. For agents that use tools, RAG, and multi-step reasoning, this intelligent prioritization significantly improves output quality.
+**答：** 当上下文窗口里装着异构内容（指令、检索到的事实、对话历史、工具结果）时，用工作记忆。滑动窗口记忆（技术 02）做盲目的 FIFO 淘汰，可能为了留下一条低价值闲聊而丢掉关键指令。工作记忆按相关性和新近度给每个条目打分，保证高价值内容留存。对使用工具、RAG 和多步推理的智能体，这种智能优先级排序能明显提升输出质量。
 
-### Q: What are the limits or failure modes of Working Memory?
+### 问：工作记忆有哪些局限或失败模式？
 
-**A:** Salience scoring adds computational overhead per turn. The scoring model may misjudge relevance, evicting important context or keeping irrelevant data. Pinned items (system prompts, critical instructions) reduce the budget available for dynamic content. If too many items are pinned, the working memory becomes rigid and cannot adapt. The approach also requires careful tuning of scoring weights and eviction thresholds, which vary by use case.
+**答：** 显著性评分增加每轮的计算开销。评分模型可能误判相关性，淘汰重要上下文或留下无关数据。固定条目（系统提示词、关键指令）会挤占动态内容的预算。固定太多条目，工作记忆就变得僵硬、无法适应。这个方案还需要仔细调整评分权重和淘汰阈值，不同场景取值不同。
 
-### Q: Can I combine Working Memory with another memory technique?
+### 问：能把工作记忆和其他记忆技术结合吗？
 
-**A:** Yes. Working Memory is the natural orchestration layer for other memory types. Pair it with technique 06 (Vector Store Memory) to pull relevant long-term memories into the context window on demand. Add technique 13 (Hierarchical Memory Layers) to create a hot/warm/cold tier system where working memory is the hot tier. Use technique 17 (Memory Routing) to decide which memory store to query before populating the working memory.
+**答：** 可以。工作记忆是其他记忆类型天然的编排层。搭配技术 06（向量库记忆），按需把相关的长期记忆拉进上下文窗口。加上技术 13（分层记忆），组成热/温/冷层系统，工作记忆就是热层。用技术 17（记忆路由），在填充工作记忆之前决定查询哪个记忆库。
 
-### Q: What library or framework can I use to skip the implementation work?
+### 问：有什么库或框架能省掉自己实现？
 
-**A:** Letta/MemGPT (technique 26) directly implements working memory management through its self-editing core memory block with a fixed token budget. LangChain does not have a dedicated working memory class, but you can approximate it with custom memory classes that score and evict items. OpenAI's Assistants API handles some context management internally. For fine-grained control, you typically build a custom layer that manages the context window contents programmatically.
+**答：** Letta/MemGPT（技术 26）通过固定 token 预算、可自我编辑的核心记忆块，直接实现了工作记忆管理。LangChain 没有专门的工作记忆类，但你可以用会打分、会淘汰的自定义记忆类近似实现。OpenAI 的 Assistants API 在内部处理一部分上下文管理。要精细控制，通常还是自己写一层代码，以程序化方式管理上下文窗口的内容。
 
-## References
+## 参考文献
 
 - Liu, N. F., et al. (2023). "Lost in the Middle: How Language Models Use Long Contexts." [arXiv:2307.03172](https://arxiv.org/abs/2307.03172).
 - Baddeley, A. (2000). "The Episodic Buffer: A New Component of Working Memory?" [*Trends in Cognitive Sciences*](https://doi.org/10.1016/S1364-6613%2800%2901538-2), 4(11), 417-423.
 - Mu, J., et al. (2023). "Learning to Compress Prompts with Gist Tokens." [arXiv:2304.08467](https://arxiv.org/abs/2304.08467).
 - Modarressi, A., et al. (2023). "RET-LLM: Towards a General Read-Write Memory for LLMs." [arXiv:2305.14322](https://arxiv.org/abs/2305.14322).
 
-## Related Techniques
+## 相关技术
 
-- [**02 Sliding Window Memory**](../02_sliding_window_memory/) - A simpler windowing approach that drops the oldest turns. Good baseline before you add salience scoring.
-- [**05 Token Buffer Memory**](../05_token_buffer_memory/) - Trims context by a strict token count. A lightweight alternative when you don't need per-item scoring.
-- [**13 Hierarchical Memory Layers**](../13_hierarchical_memory_layers/) - The L1 hot tier is essentially working memory. This technique adds warm and cold tiers underneath.
-- [**15 Memory Compaction**](../15_memory_compaction/) - Compacts memories into shorter forms so you can fit more semantic content into the same token budget.
+- [**02 滑动窗口记忆**](../02_sliding_window_memory/) - 更简单的窗口方案，丢掉最旧的轮次。加显著性评分前的好基线。
+- [**05 token 缓冲记忆**](../05_token_buffer_memory/) - 按严格的 token 数修剪上下文。不需要逐条打分时的轻量替代。
+- [**13 分层记忆**](../13_hierarchical_memory_layers/) - L1 热层本质上就是工作记忆。这项技术在其下再加温层和冷层。
+- [**15 记忆压缩**](../15_memory_compaction/) - 把记忆压缩成更短的形式，同样的 token 预算装下更多语义内容。
 
 ---
 

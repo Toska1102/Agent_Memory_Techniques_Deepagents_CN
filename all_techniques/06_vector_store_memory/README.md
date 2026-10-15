@@ -1,52 +1,52 @@
-# Vector Store Memory
+# 向量库记忆（Vector Store Memory）
 
 <p align="center">
-  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/06_vector_store_memory/vector_store_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/06_vector_store_memory/vector_store_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="在 Colab 中打开"/></a>
 </p>
 
-## 📖 At a Glance
+## 📖 速览
 
-| Difficulty | Time | Prerequisites |
+| 难度 | 时间 | 前置要求 |
 |------------|------|---------------|
-| Beginner | ~25 min | Python 3.8+, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` (for embeddings), basic understanding of vector embeddings |
+| 初级 | 约 25 分钟 | Python 3.8+、`LLM_API_KEY`（任意 OpenAI 兼容端点）、对向量嵌入的基本了解 |
 
-This technique is for developers ready to move beyond sequential chat history and retrieve relevant memories by meaning rather than position.
+这项技术适合想跳出顺序聊天历史的开发者：按语义而不是按位置来检索相关记忆。
 
 ## TL;DR
 
-- **What it is:** **Vector Store Memory** embeds conversation turns into vectors and retrieves the most relevant past exchanges via similarity search.
-- **When you need it:** Your agent must recall information from long or multi-topic conversations where recency alone is not enough.
-- **The trade-off:** Requires an embedding model plus a vector database, and semantic similarity does not always equal task relevance.
-- **Closest alternative in this repo:** 20 Memory Retrieval Patterns extends vector search with BM25 fusion, re-ranking, and diversity filtering.
+- **它是什么：** **向量库记忆**把对话轮次嵌入成向量，通过相似度搜索取回最相关的历史对话。
+- **什么时候需要它：** 智能体要从长对话或多主题对话里召回信息，光靠新近度（recency）不够。
+- **代价：** 需要一个嵌入模型加一个向量数据库，而且语义相似不总是等于任务相关。
+- **本仓库中最接近的替代：** 技术 20 记忆检索模式在向量搜索之上加了 BM25 融合、重排序（re-ranking）和多样性过滤。
 
-## Description
+## 描述
 
-Think of a library with thousands of books but no catalog: you'd walk shelf by shelf to find anything. Now imagine a librarian who instantly pulls the most relevant books for any question you ask. Vector Store Memory gives your LLM agent that librarian. This agent memory technique stores conversation turns as embeddings (numerical fingerprints of meaning) in a vector database like ChromaDB or FAISS. When the agent needs context, it runs a semantic search to retrieve the most relevant past exchanges. This makes it a great fit for long-running chatbots and multi-session assistants whose conversation history exceeds the context window.
+想象一座有几千本书却没有目录的图书馆：想找任何东西，你都得一排排书架走过去。再想象一位图书管理员，你每提一个问题，她都能立刻抽出最相关的几本书。向量库记忆就是给你的 LLM 智能体配上这样一位管理员。这项智能体记忆技术把对话轮次以嵌入（embedding，语义的数字指纹）的形式存进 ChromaDB 或 FAISS 这类向量数据库。智能体需要上下文时，就跑一次语义搜索，取回最相关的历史对话。因此它非常适合对话历史超出上下文窗口（context window）的长期聊天机器人和多会话助手。
 
-This technique converts every conversation turn into a numerical fingerprint (called an embedding). It stores these fingerprints in a specialized database. When the agent needs context, it compares the current question against all stored fingerprints and pulls back the most relevant past exchanges. The key insight: retrieval happens by *meaning*, not by *time*.
+这项技术把每一轮对话转换成数字指纹（称为嵌入），存进专门的数据库。智能体需要上下文时，就把当前问题和所有已存的指纹比对，取回最相关的历史对话。关键在于：检索按*语义*进行，而不是按*时间*。
 
-An embedding is a list of numbers (a vector) that captures what a piece of text means. Two sentences with similar meaning produce similar vectors. A vector database (like ChromaDB or FAISS) is a storage system built to find the closest vectors quickly, even among millions.
+嵌入是一串数字（一个向量），刻画一段文本的含义。意思相近的两句话会得到相近的向量。向量数据库（如 ChromaDB 或 FAISS）是一种存储系统，专门用来在百万级数据里快速找出最接近的向量。
 
-This decouples memory from the context window (the limited text an LLM can read at once). Your agent can "remember" thousands of past interactions. It surfaces only the most relevant ones each turn.
+这把记忆和上下文窗口（LLM 一次能读的有限文本）解耦了。你的智能体可以「记住」几千次过去的交互，每轮只浮现最相关的那些。
 
-**Keywords:** agent memory, LLM agent, vector store memory, embeddings, vector database, semantic search, ChromaDB, FAISS, conversation history, context window
+**关键词：** 智能体记忆、LLM 智能体、向量库记忆、嵌入、向量数据库、语义搜索、ChromaDB、FAISS、对话历史、上下文窗口
 
-## Key Concepts
+## 核心概念
 
-- **Embedding models:** Models like OpenAI's `text-embedding-3-small` or Sentence Transformers that convert text into fixed-length vectors. These vectors capture meaning, so similar text produces nearby vectors.
-- **Vector databases (ChromaDB, FAISS, Pinecone):** Storage systems optimized for approximate nearest-neighbor (ANN) search. ANN means "find the closest matches quickly, even if not perfectly exact."
-- **Similarity search:** Finding stored vectors closest to the query vector. Common metrics include cosine similarity (angle between vectors), dot product, or Euclidean distance.
-- **Top-k retrieval:** Returning the *k* most similar results. A small *k* saves tokens but might miss context. A large *k* catches more but costs more.
-- **Chunk strategies:** How you split conversations before embedding. Options include individual messages, user-assistant pairs, sliding windows, or topic-based chunks.
-- **Metadata filtering:** Attaching extra info (timestamps, user IDs, topics) to each vector. You can then filter results by these attributes for more targeted retrieval.
+- **嵌入模型（embedding model）：** OpenAI 的 `text-embedding-3-small` 或 Sentence Transformers 这类模型，把文本转换成定长向量。向量承载语义，所以相似的文本会得到相近的向量。
+- **向量数据库（ChromaDB、FAISS、Pinecone）：** 为近似最近邻（ANN）搜索优化的存储系统。ANN 的意思是「快速找出最接近的结果，哪怕不是精确解」。
+- **相似度搜索（similarity search）：** 找出与查询向量最接近的已存向量。常用度量有余弦相似度（向量间的夹角）、点积和欧氏距离。
+- **Top-k 检索：** 返回最相似的 *k* 个结果。*k* 小省 token，但可能漏掉上下文；*k* 大覆盖更全，但成本更高。
+- **分块策略（chunk strategy）：** 嵌入前怎么切分对话。可选：单条消息、用户-助手成对消息、滑动窗口，或按主题分块。
+- **元数据过滤（metadata filtering）：** 给每个向量附加额外信息（时间戳、用户 ID、主题），之后就能按这些属性过滤结果，做更有针对性的检索。
 
-## Architecture
+## 架构
 
 <p align="center">
-  <img src="../../images/diagrams/06_vector_store_memory.svg" alt="Vector Store Memory architecture diagram" width="720"/>
+  <img src="../../images/diagrams/06_vector_store_memory.svg" alt="向量库记忆架构图" width="720"/>
 </p>
 
-<details><summary>Mermaid source</summary>
+<details><summary>Mermaid 源码</summary>
 
 ```mermaid
 flowchart LR
@@ -65,7 +65,7 @@ flowchart LR
 
     subgraph Generation["Generation"]
         H --> I["Build Prompt:\nsystem + retrieved\nmemories + recent buffer"]
-        I --> J["LLM\n(Claude)"]
+        I --> J["LLM"]
         J --> K["Response"]
     end
 
@@ -77,69 +77,69 @@ flowchart LR
 
 ---
 
-## How It Works
+## 工作原理
 
-1. After each exchange, the agent embeds the message (or message pair) using an embedding model.
-2. It stores the embedding vector in a vector database alongside the original text and metadata.
-3. When building the prompt for the next LLM call, the agent embeds the new user message.
-4. A similarity search retrieves the top-*k* most relevant past fragments.
-5. These fragments are injected into the prompt alongside the recent conversation.
-6. The LLM generates a response informed by both recent context and semantically relevant history.
+1. 每轮对话结束后，智能体用嵌入模型把消息（或消息对）嵌入成向量。
+2. 把嵌入向量连同原文和元数据一起存进向量数据库。
+3. 为下一次 LLM 调用构建提示词时，智能体把新的用户消息嵌入成向量。
+4. 相似度搜索取回最相关的 top-*k* 个历史片段。
+5. 这些片段连同近期对话一起注入提示词。
+6. LLM 结合近期上下文和语义相关的历史，生成回复。
 
-## When to Use
+## 什么时候用
 
-- Long-running agents where the full history far exceeds the context window.
-- Applications where users revisit earlier topics and the agent needs to recall them.
-- Multi-session agents that must recall information from previous conversations.
-- RAG-style architectures (Retrieval-Augmented Generation, where you fetch relevant text before generating) applied to conversation memory.
+- 长期运行的智能体，完整历史远超上下文窗口。
+- 用户会回头提起早前话题、智能体需要记起来的应用。
+- 需要记住之前会话内容的多会话智能体。
+- 把检索增强生成（RAG）式架构用在对话记忆上（生成前先取回相关文本）。
 
-## Limitations
+## 局限
 
-- Embedding quality directly impacts retrieval quality. Poor embeddings lead to irrelevant retrievals.
-- You need extra infrastructure: an embedding model and a vector database.
-- Retrieval adds latency to every turn (typically 10-100ms, but can be more at scale).
-- Semantic similarity is not the same as relevance. Retrieved fragments may be topically similar but not actually useful.
+- 嵌入质量直接决定检索质量。嵌入差，检索结果就不相关。
+- 你需要额外的基础设施：一个嵌入模型和一个向量数据库。
+- 每一轮都会增加检索延迟（通常 10-100ms，规模大了会更高）。
+- 语义相似不等于相关。检索到的片段可能主题相近，但实际没用。
 
 ## Notebook
 
-[**vector_store_memory.ipynb**](vector_store_memory.ipynb): Full implementation using OpenAI `text-embedding-3-small` embeddings and ChromaDB (in-memory). Includes a `VectorStoreMemory` class built from scratch, a 50-turn synthetic conversation experiment comparing semantic recall against sliding window memory, retrieval quality analysis, top-K tuning charts, and token cost comparisons.
+[**vector_store_memory.ipynb**](vector_store_memory.ipynb)：完整实现，使用可选向量端点（默认本地兜底向量）和 ChromaDB（内存模式）。包含从零编写的 `VectorStoreMemory` 类、比较语义召回与滑动窗口记忆的 50 轮合成对话实验、检索质量分析、top-K 调优图表和 token 成本对比。
 
 ## FAQ
 
-### Q: What is Vector Store Memory in agent memory?
+### 问：在智能体记忆里，向量库记忆是什么？
 
-**A:** Vector Store Memory embeds conversation turns or facts into high-dimensional vectors and stores them in a vector database (such as FAISS, Chroma, Pinecone, or Weaviate). On each turn, the system retrieves the top-K most semantically similar past entries rather than relying on recency. This enables relevance-based recall across thousands of stored memories. LangChain implements this as `VectorStoreRetrieverMemory`. Typical K values range from 3 to 10 entries per query.
+**答：** 向量库记忆把对话轮次或事实嵌入成高维向量，存进向量数据库（如 FAISS、Chroma、Pinecone 或 Weaviate）。每一轮，系统检索语义最相似的 top-K 条历史条目，而不是依赖新近度。这样就能在几千条存储记忆中按相关性召回。LangChain 把它实现为 `VectorStoreRetrieverMemory`。每个查询的 K 通常取 3 到 10 条。
 
-### Q: When should I use Vector Store Memory instead of Memory Retrieval Patterns?
+### 问：什么时候该用向量库记忆，而不是记忆检索模式？
 
-**A:** Use basic Vector Store Memory when a single-stage semantic search meets your accuracy needs. Memory Retrieval Patterns (technique 20) adds BM25 keyword fusion, cross-encoder re-ranking, and MMR diversity filtering on top of vector search. Start with the simpler approach: embed and retrieve with cosine similarity. If you notice missed results due to keyword mismatches or redundant retrievals, upgrade to the multi-stage pipeline described in technique 20.
+**答：** 单阶段语义搜索能满足准确率要求时，用基础的向量库记忆就够了。记忆检索模式（技术 20）在向量搜索之上加了 BM25 关键词融合、cross-encoder 重排序和 MMR 多样性过滤。先从简单的做法开始：用余弦相似度做嵌入和检索。如果发现因为关键词不匹配而漏掉结果，或检索结果重复，再升级到技术 20 的多阶段流程。
 
-### Q: What are the limits or failure modes of Vector Store Memory?
+### 问：向量库记忆有哪些局限或失败模式？
 
-**A:** Embedding quality determines retrieval quality. If the embedding model misses domain-specific terms, relevant memories will not surface. Semantic search can return plausible but wrong matches (high similarity, low relevance). Write latency increases as the store grows, though query time remains sublinear with approximate nearest neighbor (ANN) indexes. There is also a cold-start problem: the system has nothing to retrieve until enough memories are stored.
+**答：** 嵌入质量决定检索质量。如果嵌入模型不认识领域专用词，相关记忆就浮不上来。语义搜索可能返回看似合理但错误的结果（相似度高，相关性低）。存储变大后写入延迟会上升，不过有了近似最近邻（ANN）索引，查询时间仍保持次线性。还有冷启动问题：存入的记忆不够多时，系统无东西可检索。
 
-### Q: Can I combine Vector Store Memory with another memory technique?
+### 问：能把向量库记忆和其他记忆技术组合吗？
 
-**A:** Yes. A strong pattern pairs it with technique 02 (Sliding Window Memory) or technique 04 (Summary Buffer Memory). Keep the window or buffer for recent context, and query the vector store for relevant older memories. This gives you recency from the buffer and relevance from the vector store. You can also layer technique 18 (Temporal Memory) on top to add time-decay weighting to your similarity scores.
+**答：** 可以。一个常见的好搭配是和技术 02（滑动窗口记忆）或技术 04（摘要缓冲记忆）组合：窗口或缓冲负责近期上下文，向量库负责相关的更早记忆。这样缓冲给你新近度，向量库给你相关性。还可以再叠加技术 18（时序记忆），给相似度分数加上时间衰减权重。
 
-### Q: What library or framework can I use to skip the implementation work?
+### 问：有什么库或框架可以省掉自己实现的工作？
 
-**A:** LangChain provides `VectorStoreRetrieverMemory` with adapters for FAISS, Chroma, Pinecone, and Weaviate. LlamaIndex has native vector memory integration through its retriever modules. Mem0 (technique 25) uses vector storage under the hood with automatic embedding. Zep (technique 27) combines vector search with its knowledge graph for hybrid retrieval. For standalone vector stores, Chroma and FAISS are the most common open-source choices for prototyping.
+**答：** LangChain 提供 `VectorStoreRetrieverMemory`，带 FAISS、Chroma、Pinecone 和 Weaviate 适配器。LlamaIndex 通过它的 retriever 模块提供原生的向量记忆集成。Mem0（技术 25）底层用向量存储，自动做嵌入。Zep（技术 27）把向量搜索和知识图谱结合，做混合检索。就独立向量数据库而言，原型阶段最常用的开源选择是 Chroma 和 FAISS。
 
-## References
+## 参考资料
 
 - [LangChain VectorStoreRetrieverMemory](https://python.langchain.com/docs/modules/memory/types/vectorstore_retriever_memory?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
-- [ChromaDB Documentation](https://docs.trychroma.com/?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
-- [FAISS: Facebook AI Similarity Search](https://github.com/facebookresearch/faiss)
-- [Pinecone Vector Database](https://www.pinecone.io/?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
+- [ChromaDB 文档](https://docs.trychroma.com/?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
+- [FAISS：Facebook AI Similarity Search](https://github.com/facebookresearch/faiss)
+- [Pinecone 向量数据库](https://www.pinecone.io/?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
 - Johnson, Douze, Jegou, "Billion-scale similarity search with GPUs," IEEE Transactions on Big Data, 2019
 
-## Related Techniques
+## 相关技术
 
-- [**07 Entity Memory**](../07_entity_memory/) - Structures knowledge around named entities (people, places, projects) rather than raw conversation fragments.
-- [**08 Knowledge Graph Memory**](../08_knowledge_graph_memory/) - Captures relationships between entities as a graph, enabling multi-hop reasoning.
-- [**20 Memory Retrieval Patterns**](../20_memory_retrieval_patterns/) - Advanced retrieval strategies (hybrid search, re-ranking) that build on vector search.
-- [**21 Cross-Session Memory**](../21_cross_session_memory/) - Patterns for persisting any memory type across sessions, often backed by a vector store.
+- [**07 实体记忆**](../07_entity_memory/) - 围绕命名实体（人物、地点、项目）组织知识，而不是原始对话片段。
+- [**08 知识图谱记忆**](../08_knowledge_graph_memory/) - 把实体之间的关系存成图，支持多跳推理。
+- [**20 记忆检索模式**](../20_memory_retrieval_patterns/) - 在向量搜索之上的高级检索策略（混合搜索、重排序）。
+- [**21 跨会话记忆**](../21_cross_session_memory/) - 把任何记忆类型跨会话持久化的模式，底层常用向量库支撑。
 
 ---
 

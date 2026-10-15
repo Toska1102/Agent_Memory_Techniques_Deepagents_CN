@@ -1,44 +1,44 @@
-# Sliding Window Memory
+# 滑动窗口记忆（Sliding Window Memory）
 
 <p align="center">
-  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/02_sliding_window_memory/sliding_window_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/02_sliding_window_memory/sliding_window_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="在 Colab 中打开"/></a>
 </p>
 
-## 📖 At a Glance
+## 📖 速览
 
-| Difficulty | Time | Prerequisites |
+| 难度 | 耗时 | 前置要求 |
 |------------|------|---------------|
-| Beginner | ~20 min | Python 3.8+, `ANTHROPIC_API_KEY`, understanding of 01 Conversation Buffer Memory recommended |
+| 初级 | 约 20 分钟 | Python 3.8+、`LLM_API_KEY`，建议先了解 01 对话缓冲记忆 |
 
-This technique is for developers who need a fixed-size conversation history that prevents token overflow while keeping recent context intact.
+这项技术面向需要固定大小对话历史的开发者：既防止 token 溢出，又保住最近的上下文。
 
 ## TL;DR
 
-- **What it is:** **Sliding Window Memory** keeps only the last K messages and drops older ones using first-in-first-out eviction.
-- **When you need it:** You want bounded memory cost and only care about recent conversation context.
-- **The trade-off:** The agent permanently forgets everything outside the window with no graceful degradation.
-- **Closest alternative in this repo:** 05 Token Buffer Memory trims by token count rather than message count for finer control.
+- **是什么：** **滑动窗口记忆**只保留最近 K 条消息，用先进先出（FIFO）的方式淘汰更旧的消息。
+- **什么时候需要：** 你想让记忆成本有上限，而且只关心最近的对话上下文。
+- **代价：** 窗口之外的内容被永久遗忘，没有任何平滑过渡。
+- **本仓库中最接近的替代：** 05 token 缓冲记忆按 token 数而不是消息数裁剪，控制更精细。
 
-## Description
+## 描述
 
-Imagine a whiteboard that only fits five sticky notes. When you add a sixth, you peel off the oldest one and throw it away. That's sliding window memory. You always see the most recent notes, but anything older disappears for good.
+想象一块只贴得下五张便利贴的白板。贴第六张时，你会撕掉最旧的那张扔掉。滑动窗口记忆就是这样：你总能看到最近的笔记，但更旧的永远消失。
 
-Sliding Window Memory is an agent memory technique that keeps only the last *k* messages in the conversation history. It uses FIFO eviction (first-in, first-out): when a new message arrives and the buffer is full, the oldest message drops out. This bounds your context window usage to a predictable maximum, making it one of the most practical LLM agent memory strategies for chat interfaces and customer support bots. The tradeoff is a hard recency bias: the agent remembers recent turns but permanently forgets earlier conversation history.
+滑动窗口记忆是一种智能体记忆技术，只在对话历史中保留最近 *k* 条消息。它采用 FIFO 淘汰（先进先出）：新消息到来且缓冲已满时，最旧的消息掉出。这把上下文窗口的用量限制在一个可预测的上限，让滑动窗口成为聊天界面和客服机器人最实用的 LLM 智能体记忆策略之一。代价是很硬的新近度偏差：智能体记得最近的轮次，但会永久忘记更早的对话历史。
 
-**Keywords:** agent memory, sliding window memory, LLM agent, FIFO eviction, context window, conversation history, recency bias, chat memory, message window, short-term memory
+**关键词：** 智能体记忆、滑动窗口记忆、LLM 智能体、FIFO 淘汰、上下文窗口、对话历史、新近度偏差、聊天记忆、消息窗口、短期记忆
 
-## Key Concepts
+## 关键概念
 
-- **Window size *k*:** The maximum number of messages retained. Choosing *k* is a tuning decision. A larger *k* preserves more history but costs more tokens.
-- **FIFO eviction:** When a new message arrives and the buffer is full, the oldest message drops out. The window "slides" forward in time.
-- **Recency bias:** The model can only see recent context. Information from earlier in the conversation is permanently lost unless captured elsewhere.
-- **Configurable window:** You can adjust the window size dynamically based on task requirements, model context limits, or conversation complexity.
-- **Message-count vs. turn-count windows:** A window of *k* messages counts each individual message. A window of *k* turns counts user-assistant pairs. Turn-count windows keep exchanges intact and avoid orphaned messages (a response without its question).
+- **窗口大小 *k***：保留消息的最大数量。选 *k* 是一个调参决定。*k* 越大，保留的历史越多，token 成本也越高。
+- **FIFO 淘汰**：新消息到来且缓冲已满时，最旧的消息掉出。窗口随时间向前「滑动」。
+- **新近度偏差**：模型只能看到最近的上下文。对话较早的信息会永久丢失，除非在别处保存下来。
+- **可配置的窗口**：你可以根据任务需求、模型上下文限制或对话复杂度，动态调整窗口大小。
+- **按消息计数与按轮次计数的窗口**：大小为 *k* 的消息窗口逐条计数。大小为 *k* 的轮次窗口按「用户-助手」对话对计数。轮次窗口保持每段交流完整，避免孤立消息（只剩回答、没有提问）。
 
-## Architecture
+## 架构
 
 <p align="center">
-  <img src="../../images/diagrams/02_sliding_window_memory.svg" alt="Sliding Window Memory architecture diagram" width="720"/>
+  <img src="../../images/diagrams/02_sliding_window_memory.svg" alt="滑动窗口记忆架构图" width="720"/>
 </p>
 
 <details><summary>Mermaid source</summary>
@@ -47,7 +47,7 @@ Sliding Window Memory is an agent memory technique that keeps only the last *k* 
 sequenceDiagram
     participant U as User
     participant W as Sliding Window (k=4 messages)
-    participant L as LLM (Claude)
+    participant L as LLM
 
     Note over W: Window: []
 
@@ -79,63 +79,63 @@ sequenceDiagram
 
 ---
 
-## How It Works
+## 工作原理
 
-1. Maintain an ordered list of messages.
-2. After each new message (user or assistant), check if `len(messages) > k`.
-3. If the limit is exceeded, remove the oldest message(s) from the front of the list.
-4. Send only the retained messages to the LLM for the next completion.
+1. 维护一个有序的消息列表。
+2. 每来一条新消息（用户或助手），检查 `len(messages) > k` 是否成立。
+3. 如果超限，从列表头部移除最旧的消息。
+4. 下一次调用 LLM 时，只发送保留的消息。
 
-## When to Use
+## 何时使用
 
-- Conversations where recent context matters most and older context is expendable.
-- Cost-sensitive applications where you need to cap per-request token usage.
-- Chat interfaces where users are unlikely to reference much earlier parts of the conversation.
+- 最近上下文最重要、更旧上下文可以舍弃的对话。
+- 对成本敏感、需要限制每次请求 token 用量的应用。
+- 用户很少引用对话较早部分的聊天界面。
 
-## Limitations
+## 局限
 
-- Hard information cutoff: anything beyond the window is gone.
-- No graceful degradation. There's no summary or trace of what was discussed before the window.
-- Choosing the right *k* requires experimentation. Too small loses critical context. Too large wastes tokens.
+- 硬性的信息截断：窗口之外的内容一概丢失。
+- 没有优雅降级：窗口之前的讨论没有摘要或痕迹。
+- 选对 *k* 需要实验。太小会丢关键上下文，太大浪费 token。
 
 ## Notebook
 
-**[sliding_window_memory.ipynb](sliding_window_memory.ipynb)**: A hands-on notebook that builds a `deque`-based sliding window memory from scratch using the Anthropic SDK. It includes a controlled recall evaluation across different window sizes, token-cost comparison charts, and a discussion of how to choose the right *k*.
+**[sliding_window_memory.ipynb](sliding_window_memory.ipynb)**：一个动手 notebook，用 deepagents 和任意 OpenAI 兼容端点从零构建基于 `deque` 的滑动窗口记忆。包含跨不同窗口大小的受控回忆评估、token 成本对比图，以及如何选对 *k* 的讨论。
 
-## FAQ
+## 常见问题
 
-### Q: What is Sliding Window Memory in agent memory?
+### 问：智能体记忆中的滑动窗口记忆是什么？
 
-**A:** Sliding Window Memory keeps only the last K messages in the conversation history and discards older ones using FIFO (first-in, first-out) eviction. This bounds token usage to a predictable maximum regardless of conversation length. For example, with K=10 and roughly 50 tokens per message, you always spend about 500 tokens on history. LangChain implements this as `ConversationBufferWindowMemory` with a configurable `k` parameter.
+**答：** 滑动窗口记忆只在对话历史中保留最近 K 条消息，用 FIFO（先进先出）淘汰丢弃更旧的消息。无论对话多长，token 用量都有可预测的上限。例如 K=10、每条消息约 50 token 时，历史部分始终只花约 500 token。LangChain 把它实现为 `ConversationBufferWindowMemory`，`k` 参数可配置。
 
-### Q: When should I use Sliding Window Memory instead of Token Buffer Memory?
+### 问：什么时候该用滑动窗口记忆，而不是 token 缓冲记忆？
 
-**A:** Use Sliding Window Memory when you want the simplest possible bounded-memory approach and message lengths are roughly uniform. Token Buffer Memory (technique 05) trims by token count, giving finer control when messages vary in length. If some messages are 10 tokens and others are 500, a message-count window wastes budget or overflows unpredictably. For chatbots with short, consistent turns, the sliding window is easier to reason about and configure.
+**答：** 当你想要最简单的有界记忆方案，且消息长度大致均匀时，用滑动窗口记忆。token 缓冲记忆（技术 05）按 token 数裁剪，消息长短不一时控制更精细。如果有的消息 10 token、有的 500 token，按消息计数的窗口要么浪费预算，要么不可预期地溢出。对轮次短而一致的聊天机器人来说，滑动窗口更好理解、更好配置。
 
-### Q: What are the limits or failure modes of Sliding Window Memory?
+### 问：滑动窗口记忆有什么限制或失败模式？
 
-**A:** The main failure mode is context amnesia. Once a message scrolls past the window, it is gone forever. The agent cannot recall early instructions, user preferences stated in turn 1, or prior agreements. If K is too small, the agent loses critical context mid-conversation. If K is too large, you approach the same cost problems as Conversation Buffer Memory. There is no graceful degradation, only a hard cutoff at K messages.
+**答：** 主要失败模式是上下文失忆。消息一旦滑出窗口，就永远消失。智能体无法回忆早期的指令、用户在第 1 轮说的偏好，或之前达成的约定。K 太小，智能体会在对话中途丢失关键上下文；K 太大，成本问题就和对话缓冲记忆差不多了。没有优雅降级，只有在 K 条消息处的硬截断。
 
-### Q: Can I combine Sliding Window Memory with another memory technique?
+### 问：滑动窗口记忆能和其他记忆技术组合吗？
 
-**A:** Yes. Pair it with technique 03 (Summary Memory) for a lightweight hybrid. Keep the last K messages verbatim in the window, and maintain a running summary of everything that scrolled out. This is exactly what technique 04 (Summary Buffer Memory) formalizes. You can also combine it with technique 06 (Vector Store Memory) to retrieve relevant older messages on demand while keeping the window for immediate context.
+**答：** 可以。和技术 03（摘要记忆）搭配，就是一个轻量的混合方案：窗口里逐字保留最近 K 条消息，同时维护一份覆盖所有已滑出内容的滚动摘要。这正是技术 04（摘要缓冲记忆）的形式化版本。也可以和技术 06（向量库记忆）组合：窗口提供即时上下文，同时按需检索相关的较早消息。
 
-### Q: What library or framework can I use to skip the implementation work?
+### 问：有什么库或框架能省掉自己实现的工作？
 
-**A:** LangChain provides `ConversationBufferWindowMemory` with a `k` parameter out of the box. LlamaIndex offers `ChatMemoryBuffer` with a `token_limit` option that provides similar bounded behavior. For managed solutions, Zep (technique 27) and Mem0 (technique 25) both support configurable retention windows. If you need finer control at the token level rather than message level, see technique 05 (Token Buffer Memory) and LangChain's `ConversationTokenBufferMemory`.
+**答：** LangChain 开箱提供 `ConversationBufferWindowMemory`，带 `k` 参数。LlamaIndex 的 `ChatMemoryBuffer` 提供 `token_limit` 选项，行为是有界记忆。托管方案方面，Zep（技术 27）和 Mem0（技术 25）都支持可配置的保留窗口。如果需要 token 级而不是消息级的精细控制，看技术 05（token 缓冲记忆）和 LangChain 的 `ConversationTokenBufferMemory`。
 
-## References
+## 参考文献
 
 - [LangChain ConversationBufferWindowMemory](https://python.langchain.com/docs/modules/memory/types/buffer_window?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
 - OpenAI Best Practices: Managing Tokens
 - Lilian Weng, "LLM Powered Autonomous Agents," 2023
 - [LlamaIndex ChatMemoryBuffer](https://docs.llamaindex.ai/en/stable/api_reference/memory/chat_memory_buffer/?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
 
-## Related Techniques
+## 相关技术
 
-- [**01 Conversation Buffer Memory**](../01_conversation_buffer_memory/) - The unbounded version of this technique. Stores everything, with no eviction.
-- [**04 Summary Buffer Memory**](../04_summary_buffer_memory/) - Keeps a summary of what the sliding window loses, so older context isn't completely forgotten.
-- [**05 Token Buffer Memory**](../05_token_buffer_memory/) - Trims by token count instead of message count. More precise when message lengths vary widely.
+- [**01 对话缓冲记忆**](../01_conversation_buffer_memory/) - 本技术的无上限版本。保存所有内容，不做淘汰。
+- [**04 摘要缓冲记忆**](../04_summary_buffer_memory/) - 为滑动窗口丢掉的内容保留摘要，较早的上下文不会被彻底遗忘。
+- [**05 token 缓冲记忆**](../05_token_buffer_memory/) - 按 token 数而不是消息数裁剪。消息长短差异大时更精确。
 
 ---
 

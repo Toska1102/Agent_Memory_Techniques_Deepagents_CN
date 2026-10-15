@@ -1,52 +1,52 @@
-# Memory Compaction
+# 记忆压缩（Memory Compaction）
 
 <p align="center">
-  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/15_memory_compaction/memory_compaction.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/15_memory_compaction/memory_compaction.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="在 Colab 中打开"/></a>
 </p>
 
-## 📖 At a Glance
+## 📖 速览
 
-| Difficulty | Time | Prerequisites |
+| 难度 | 用时 | 前置要求 |
 |------------|------|---------------|
-| Intermediate | ~30 min | Python 3.8+, `OPENAI_API_KEY`, understanding of 03 Summary Memory recommended |
+| 中级 | 约 30 分钟 | Python 3.8+、`LLM_API_KEY`，建议先了解技术 03 摘要记忆 |
 
-This technique is for developers who need to compress stored memories into shorter forms to fit more knowledge into a fixed token budget.
+这项技术面向需要在固定 token 预算内装入更多知识的开发者：把已存储的记忆压缩成更短的形式。
 
 ## TL;DR
 
-- **What it is:** **Memory Compaction** compresses stored memories through progressive multi-level summarization from full text down to tags.
-- **When you need it:** You need to fit more knowledge into a fixed token budget and want to choose the detail level at retrieval time.
-- **The trade-off:** Each memory may need up to three LLM calls to reach the final compression level, and aggressive compression loses detail.
-- **Closest alternative in this repo:** 03 Summary Memory creates a single summary, while Compaction produces multiple progressive levels for flexible retrieval.
+- **它是什么：** **记忆压缩**通过渐进式多级摘要压缩已存储的记忆，从完整文本一路压缩到标签。
+- **什么时候需要它：** 你要在固定 token 预算里装下更多知识，并且希望在检索时再选择详细程度。
+- **代价：** 每条记忆最多需要 3 次 LLM 调用才能达到最终压缩级别，而且激进压缩会丢失细节。
+- **仓库里最接近的替代：** 技术 03 摘要记忆只生成一份摘要，压缩则产出多个渐进级别，方便灵活检索。
 
-## Overview
+## 概述
 
-Imagine you record every meeting at work, word for word. After a year you have thousands of pages, but the real decisions fill maybe 10% of the text. Memory Compaction is the agent memory technique that solves this for LLM agents through progressive summarization (compressing text in stages). Raw memories get transformed into denser versions at multiple levels: full text, key points, a one-liner, and tags. The agent retrieves whichever level of detail the current task needs. This is especially valuable for token-constrained systems or long-running assistants that accumulate large volumes of conversation history.
+想象你把工作中的每场会议都逐字记录下来。一年后你会有几千页内容，但真正的决策大概只占全文的 10%。记忆压缩就是为 LLM 智能体解决这个问题的智能体记忆技术，核心是渐进式摘要（Progressive Summarization，分阶段压缩文本）。原始记忆被转换成多个级别上更紧凑的版本：完整文本、要点、一句话摘要、标签。智能体按当前任务的需要检索某一级别的细节。对 token 受限的系统，或长期运行、积累大量对话历史的助手来说，这一点尤其有价值。
 
-Memory compaction does this for an agent's memory store. It reduces storage size and token cost (the expense of including text in a prompt) through progressive summarization (compressing in stages). Raw memories, like full conversation transcripts and verbose tool outputs, take up a lot of space. Compaction transforms them into denser versions that keep the essential information and discard the filler.
+具体到智能体的记忆库：记忆压缩通过渐进式摘要（分阶段压缩）降低存储体积和 token 成本（把文本放进提示词的开销）。原始记忆，比如完整对话记录和冗长的工具输出，非常占空间。压缩把它们转换成更紧凑的版本，保留关键信息，丢弃填充内容。
 
-The key challenge is the storage-fidelity tradeoff. Aggressive compression saves tokens and money, but risks losing details that may matter later. Well-designed compaction systems use multiple compression levels. Memories get progressively shorter over time, but the original stays accessible in cold storage (cheap, slower storage) when you need it.
+核心难点是存储与保真度的权衡。激进压缩省 token 也省钱，但可能丢失日后有用的细节。设计良好的压缩系统使用多个压缩级别。记忆随时间越来越短，但原始版本始终保留在冷存储（便宜但较慢的存储）中，需要时可以取回。
 
-The practical benefit is dramatic. A compacted memory store can hold 10x to 100x more semantic content in the same storage budget. Retrieval gets faster because compressed entries are smaller and more information-dense.
+实际收益相当可观。在同样的存储预算下，压缩后的记忆库能容纳 10 到 100 倍的语义内容。条目更小、信息密度更高，检索也随之加快。
 
-**Keywords:** agent memory, LLM agent, memory compaction, progressive summarization, token budget, compression levels, storage-fidelity tradeoff, prompt compression, long-term memory
+**关键词：** 智能体记忆（agent memory）、LLM 智能体、记忆压缩（memory compaction）、渐进式摘要（progressive summarization）、token 预算（token budget）、压缩级别（compression levels）、存储与保真度权衡（storage-fidelity tradeoff）、提示词压缩（prompt compression）、长期记忆（long-term memory）
 
-## Key Concepts
+## 核心概念
 
-- **Progressive summarization levels**: Multi-stage compression. L0 is the raw text. L1 extracts key points. L2 distills those into one sentence. L3 reduces everything to tags only.
-- **Lossy vs. lossless compression**: Lossless keeps all information (e.g., structured extraction). Lossy discards details for brevity (e.g., summarization). Compaction uses both.
-- **Detail levels**: Configurable granularity for retrieval. You can request more or less compressed versions depending on the query's needs.
-- **Compaction scheduling**: Rules for when memories become eligible for further compression (e.g., after N days without access, or when storage pressure rises).
-- **Reversibility**: Keeping the original memory alongside compressed versions. This lets you recover full detail when needed.
-- **Storage-fidelity tradeoff**: The core tension between saving resources through compression and preserving information for future use.
+- **渐进式摘要级别**：多阶段压缩。L0 是原始文本，L1 提取要点，L2 把要点蒸馏成一句话，L3 把一切缩减为标签。
+- **有损与无损压缩**：无损保留全部信息（例如结构化抽取），有损为省篇幅丢弃细节（例如摘要）。压缩两者并用。
+- **详细级别**：检索时可配置的粒度。你可以根据查询需要，请求压缩程度更高或更低的版本。
+- **压缩调度**：规定记忆何时有资格被进一步压缩的规则（例如 N 天未访问后，或存储压力升高时）。
+- **可逆性**：把原始记忆与压缩版本放在一起保留。需要时你可以找回完整细节。
+- **存储与保真度的权衡**：通过压缩节省资源和为将来保留信息之间的核心矛盾。
 
-## Architecture
+## 架构
 
 <p align="center">
-  <img src="../../images/diagrams/15_memory_compaction.svg" alt="Memory Compaction architecture diagram" width="720"/>
+  <img src="../../images/diagrams/15_memory_compaction.svg" alt="记忆压缩架构图" width="720"/>
 </p>
 
-<details><summary>Mermaid source</summary>
+<details><summary>Mermaid 源码</summary>
 
 ```mermaid
 flowchart LR
@@ -76,72 +76,72 @@ flowchart LR
 
 ---
 
-## How It Works
+## 工作原理
 
-1. New memories are stored at full fidelity (L0) along with extracted metadata (tags, entities, timestamps).
-2. After a configurable aging period, or when storage pressure rises, the compaction engine selects candidate memories.
-3. Each candidate is compressed to the next level using LLM-based summarization or entity extraction (pulling out structured facts like names, dates, and decisions).
-4. The compressed version becomes the primary retrieval target. The original may stay in cold storage or be discarded.
-5. Retrieval can specify a desired detail level. The system returns the appropriate compression level.
+1. 新记忆以完整保真度（L0）存入，同时抽取元数据（标签、实体、时间戳）。
+2. 经过设定的老化时间，或当存储压力升高时，压缩引擎挑出候选记忆。
+3. 每条候选记忆被压缩到下一个级别，方式是基于 LLM 的摘要或实体抽取（抽出姓名、日期、决策这类结构化事实）。
+4. 压缩后的版本成为主要的检索对象。原始版本可以留在冷存储，也可以丢弃。
+5. 检索时可以指定期望的详细级别，系统返回对应的压缩级别。
 
-## When to Use
+## 何时使用
 
-- Token-constrained systems where retrieved context must fit within tight budget limits.
-- Agents with long operational lifetimes that accumulate large volumes of raw memory.
-- Cost-sensitive deployments where storage and inference costs scale with memory volume.
+- token 受限的系统：检索到的上下文必须塞进紧张的预算。
+- 长期运行的智能体：会积累大量原始记忆。
+- 对成本敏感的部署：存储和推理成本随记忆量增长。
 
-## Limitations
+## 局限
 
-- Summarization is lossy. If the agent later needs exact wording from a past turn, compressed levels won't have it. Cold storage retrieval adds latency.
-- Each memory needs up to three LLM calls to reach L3. High-throughput agents (hundreds of memories per hour) may spend more on compaction than they save on storage.
-- For small memory stores (under 100 entries), multi-level compaction adds overhead without meaningful benefit. A buffer or sliding window is a better fit.
-- Compaction scheduling involves tradeoffs. Age-based triggers compress old memories even if they're still useful. Storage-pressure triggers delay compression but create traffic spikes.
+- 摘要是有损的。如果智能体之后需要过去某一轮的原话，压缩级别里没有。取回冷存储会增加延迟。
+- 一条记忆到达 L3 最多需要 3 次 LLM 调用。高吞吐智能体（每小时数百条记忆）花在压缩上的钱可能超过省下的存储费。
+- 对小记忆库（少于 100 条），多级别压缩徒增开销，没有实际收益。缓冲或滑动窗口更合适。
+- 压缩调度本身也有权衡。按时间触发会压缩仍有用的旧记忆；按存储压力触发会推迟压缩，但会造成流量尖峰。
 
 ## Notebook
 
-The [notebook](./memory_compaction.ipynb) walks through a complete implementation:
+[notebook](./memory_compaction.ipynb) 完整演示了一遍实现：
 
-1. **Data structures**: `CompactionLevel` enum and `CompactedMemory` dataclass that hold content at four fidelity levels (L0 raw, L1 key points, L2 one-liner, L3 tags).
-2. **Compaction engine**: Uses LLM calls (OpenAI `gpt-4o-mini`) to compress from one level to the next with level-specific prompts.
-3. **Memory store**: Manages active memories and cold storage. Supports level-aware retrieval so you pick the right resolution per query.
-4. **Compaction scheduler**: Selects memories for compression based on age and idle-time policies.
-5. **Example run**: Three realistic agent memories compacted end-to-end, with storage savings measured at each level.
+1. **数据结构**：`CompactionLevel` 枚举和 `CompactedMemory` 数据类，在四个保真度级别（L0 原文、L1 要点、L2 一句话、L3 标签）上保存内容。
+2. **压缩引擎**：用 LLM 调用（OpenAI `gpt-4o-mini`）配合针对每个级别定制的提示词，把记忆从上一级压缩到下一级。
+3. **记忆存储**：管理活跃记忆和冷存储，支持按级别检索，让你为每次查询选择合适的分辨率。
+4. **压缩调度器**：基于存留时间和空闲时间策略挑选待压缩的记忆。
+5. **运行示例**：三条贴近实际的智能体记忆被端到端压缩，并测量每个级别的存储节省。
 
 ## FAQ
 
-### Q: What is Memory Compaction in agent memory?
+### 问：智能体记忆里的记忆压缩是什么？
 
-**A:** Memory Compaction compresses stored memories through progressive multi-level summarization to fit more knowledge into a fixed token budget. Unlike single-pass summarization, compaction creates a hierarchy of summaries at different fidelity levels: a detailed version, a medium summary, and a one-line gist. The system selects the appropriate fidelity level based on available context space. This lets you pack 10x more memories into the same token budget by using shorter representations for less relevant items.
+**答：** 记忆压缩通过渐进式多级摘要压缩已存储的记忆，让固定 token 预算装下更多知识。与单次摘要不同，压缩会生成一个多层次的摘要体系：详细版、中等摘要、一句话主旨。系统根据可用上下文空间选择合适的保真度级别。这样，用较短的表示存放不太重要的条目，同样的 token 预算就能多装 10 倍的记忆。
 
-### Q: When should I use Memory Compaction instead of Summary Memory?
+### 问：什么时候该用记忆压缩而不是摘要记忆？
 
-**A:** Use Memory Compaction when you have many memories competing for limited context space and want flexible fidelity control. Summary Memory (technique 03) produces a single summary of the conversation. Compaction produces multiple compression levels per memory, so you can include 50 one-line gists and 5 detailed memories in the same context window. Choose compaction when your agent has hundreds of stored facts and needs to present the most relevant ones at varying detail levels.
+**答：** 当很多记忆争夺有限的上下文空间，而且你想要灵活的保真度控制时，用记忆压缩。摘要记忆（技术 03）为整段对话生成一份摘要；压缩为每条记忆生成多个压缩级别，所以你可以在同一个上下文窗口里放 50 条一句话主旨和 5 条详细记忆。当智能体积累了成百上千条事实，又需要以不同详细程度展示最相关的那些时，选压缩。
 
-### Q: What are the limits or failure modes of Memory Compaction?
+### 问：记忆压缩有哪些限制或失败模式？
 
-**A:** Each compression level loses information. The one-line gist of a complex memory may be misleading or incomplete. Generating multiple fidelity levels per memory multiplies LLM costs (3 calls per memory if you want 3 levels). Storage also increases since you keep multiple versions. If the selection algorithm picks the wrong fidelity level, the agent gets either too little or too much detail. Compaction works best with factual content and poorly with nuanced or conditional information.
+**答：** 每一级压缩都会丢信息。复杂记忆的一句话主旨可能有误导性或不完整。为每条记忆生成多个保真度级别会让 LLM 成本翻倍（要 3 个级别就得 3 次调用）。存储也会增加，因为要保留多个版本。如果选择算法挑错了保真度级别，智能体拿到的细节不是太少就是太多。压缩最适合事实性内容，对微妙或带条件的信息效果差。
 
-### Q: Can I combine Memory Compaction with another memory technique?
+### 问：记忆压缩能和其他记忆技术组合吗？
 
-**A:** Yes. Combine it with technique 13 (Hierarchical Memory Layers) to store different fidelity levels in different tiers: gists in the hot tier, medium summaries in the warm tier, and full memories in the cold tier. Pair it with technique 20 (Memory Retrieval Patterns) to first retrieve by relevance, then select the appropriate fidelity level based on remaining context budget. This creates a highly token-efficient retrieval pipeline.
+**答：** 可以。与技术 13（分层记忆）组合，把不同保真度级别放进不同层级：主旨放热层，中等摘要放温层，完整记忆放冷层。与技术 20（记忆检索模式）组合，先按相关性检索，再根据剩余上下文预算选择合适的保真度级别。这能搭出一条非常省 token 的检索流程。
 
-### Q: What library or framework can I use to skip the implementation work?
+### 问：有什么库或框架可以直接用，跳过自己实现？
 
-**A:** No major framework provides a dedicated multi-level compaction class as of late 2025. Letta/MemGPT (technique 26) implements a form of compaction when archiving core memory to archival storage. You can build compaction on top of LangChain by creating a custom memory class that stores multiple summary versions per entry. The implementation requires roughly 100-200 lines of Python: an LLM chain for each compression level plus a selector that chooses fidelity based on available token budget.
+**答：** 截至 2025 年底，还没有主流框架提供专门的多级别压缩类。Letta/MemGPT（技术 26）在把核心记忆归档到归档存储时实现了某种形式的压缩。你可以在 LangChain 之上构建压缩：写一个自定义 memory 类，为每个条目保存多个摘要版本。实现大约需要 100-200 行 Python：每个压缩级别一条 LLM 链，外加一个按可用 token 预算选择保真度的选择器。
 
-## References
+## 参考文献
 
 - Forte, T. (2017). "Progressive Summarization: A Practical Technique for Designing Discoverable Notes." Forte Labs.
 - Xu, Z., et al. (2023). "RECOMP: Improving Retrieval-Augmented LMs with Compression and Selective Augmentation." arXiv:2310.04408.
 - Chevalier, A., et al. (2023). "Adapting Language Models to Compress Contexts." arXiv:2305.14788.
 - Jiang, H., et al. (2023). "LongLLMLingua: Accelerating and Enhancing LLMs in Long Context Scenarios via Prompt Compression." arXiv:2310.06839.
 
-## Related Techniques
+## 相关技术
 
-- [**14 Memory Consolidation**](../14_memory_consolidation/) - Consolidation merges and deduplicates memories. Compaction compresses them. Use both for a clean, space-efficient store.
-- [**03 Summary Memory**](../03_summary_memory/) - Summarization is the simplest form of compaction, applied to entire conversations at once.
-- [**04 Summary Buffer Memory**](../04_summary_buffer_memory/) - Combines recent-message buffering with summarization of older turns. A lightweight alternative to full multi-level compaction.
-- [**13 Hierarchical Memory Layers**](../13_hierarchical_memory_layers/) - Compaction works naturally across memory tiers. Compress more aggressively as memories move to colder layers.
+- [**14 记忆巩固**](../14_memory_consolidation/) - 巩固负责合并和去重记忆，压缩负责缩短记忆。两者配合，记忆库既干净又省空间。
+- [**03 摘要记忆**](../03_summary_memory/) - 摘要是压缩最简单的形式，一次性作用于整段对话。
+- [**04 摘要缓冲记忆**](../04_summary_buffer_memory/) - 把近期消息的缓冲和旧轮次的摘要结合起来。是完整多级别压缩的轻量替代。
+- [**13 分层记忆**](../13_hierarchical_memory_layers/) - 压缩天然适配记忆分层。记忆移向更冷的层时，压缩可以更激进。
 
 ---
 

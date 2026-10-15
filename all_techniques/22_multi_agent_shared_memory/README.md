@@ -1,47 +1,47 @@
-# Multi-Agent Shared Memory
+# 多智能体共享记忆（Multi-Agent Shared Memory）
 
 <p align="center">
-  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/22_multi_agent_shared_memory/multi_agent_shared_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/22_multi_agent_shared_memory/multi_agent_shared_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="在 Colab 中打开"/></a>
 </p>
 
-## 📖 At a Glance
+## 📖 速览
 
-| Difficulty | Time | Prerequisites |
+| 难度 | 耗时 | 前置要求 |
 |------------|------|---------------|
-| Intermediate | ~40 min | Python 3.8+, `OPENAI_API_KEY`, understanding of 21 Cross-Session Memory recommended |
+| 中级 | 约 40 分钟 | Python 3.8+、`LLM_API_KEY`，建议先了解技术 21 跨会话记忆 |
 
-This technique is for developers coordinating multiple agents that need to read and write a shared memory space with proper access control.
+本技术面向需要协调多个智能体的开发者：这些智能体要在合适的访问控制下读写同一块共享记忆空间。
 
 ## TL;DR
 
-- **What it is:** **Multi-Agent Shared Memory** gives multiple collaborating agents a shared memory space with namespace scoping and conflict resolution.
-- **When you need it:** You run a multi-agent pipeline where agents must read each other's findings without redundant work.
-- **The trade-off:** Requires access control, namespace management, and conflict resolution logic that single-agent systems never need.
-- **Closest alternative in this repo:** 21 Cross-Session Memory handles persistence for a single agent, without multi-agent coordination.
+- **它是什么：** **多智能体共享记忆**为多个协作智能体提供一个共享记忆空间，带命名空间划分和冲突解决。
+- **何时需要：** 你在运行多智能体流程，各智能体需要读取彼此的发现，避免重复劳动。
+- **代价：** 需要访问控制、命名空间管理和冲突解决逻辑，而单智能体系统完全用不到这些。
+- **本仓库中最接近的替代：** 技术 21 跨会话记忆处理单个智能体的持久化，不涉及多智能体协调。
 
-## Description
+## 描述
 
-Imagine a team of chefs in a kitchen. Each chef has their own cutting board (a private workspace), but they all share one recipe book on the counter. Multi-Agent Shared Memory works the same way for LLM agents. This agent memory technique gives multiple collaborating agents a shared memory store where they can read and write findings, decisions, and partial results. It uses namespace scoping (logical partitions like `research/` or `code/`) and conflict resolution rules to keep data organized. The approach builds on the classic blackboard architecture from distributed AI. You'll need this for multi-agent pipelines, collaborative coding workflows, and any system where agents must coordinate through shared state.
+想象厨房里的一组厨师。每位厨师都有自己的砧板（私人工作区），但大家共用台面上的一本食谱。多智能体共享记忆对 LLM 智能体来说就是同样的东西。这项智能体记忆技术给多个协作智能体一个共享记忆存储，他们可以在其中读写发现、决策和部分结果。它用命名空间划分（namespace scoping，即 `research/` 或 `code/` 这类逻辑分区）和冲突解决规则来保持数据井然有序。这个方法建立在分布式 AI 的经典黑板架构之上。多智能体流程、协作编程工作流，以及任何需要智能体通过共享状态来协调的系统，都会用到它。
 
-**Keywords:** agent memory, LLM agent, multi-agent shared memory, blackboard architecture, shared memory store, namespace scoping, conflict resolution, multi-agent collaboration, distributed AI, collaborative agents
+**关键词：** 智能体记忆、LLM 智能体、多智能体共享记忆、黑板架构、共享记忆存储、命名空间划分、冲突解决、多智能体协作、分布式 AI、协作智能体
 
-When multiple AI agents collaborate on a task, they need a shared memory layer. Think of a researcher agent, a coder agent, and a reviewer agent working together. The researcher's findings need to reach the coder. The coder's output needs to reach the reviewer. Shared memory makes this exchange possible.
+当多个 AI 智能体协作完成一个任务时，他们需要一个共享记忆层。想一个研究员智能体、一个程序员智能体和一个审查员智能体一起工作：研究员的发现要传达给程序员，程序员的产出要传达给审查员。共享记忆让这种交换成为可能。
 
-This technique covers the data structures, access patterns, and consistency rules that let agents share information. It includes shared key-value stores that all agents can read and write. It covers scoping rules that separate an agent's private memory from the collective memory. It also addresses conflict resolution: what happens when two agents try to update the same fact at the same time. The approach builds on classical blackboard architectures from distributed AI. A "blackboard" is a shared workspace where agents post partial results for others to refine.
+本技术覆盖让智能体共享信息的数据结构、访问模式和一致性规则。它包括所有智能体都能读写的共享键值存储；讲解如何用划分规则把智能体的私人记忆和集体记忆分开；还处理冲突解决：两个智能体同时更新同一事实时会发生什么。这个方法建立在分布式 AI 的经典黑板架构上。「黑板」是一个共享工作区，智能体把部分结果张贴上去，供其他智能体完善。
 
-## Key Concepts
+## 核心概念
 
-- **Shared memory store**: A centralized data store (Redis, a database, or an in-memory dictionary) that multiple agents read from and write to during collaborative tasks.
-- **Access control**: Rules that determine which agents can read or write each namespace. Prevents unauthorized changes.
-- **Namespaces**: Logical partitions within shared memory (for example, `research/`, `code/`, `review/`). They organize information by domain and reduce write conflicts.
-- **Private scratchpad**: An agent's internal notes, invisible to other agents. Only finished results go into shared memory.
-- **Blackboard system**: A classic AI architecture where agents post partial solutions to a shared workspace. Other agents read, refine, or extend those solutions.
-- **Conflict resolution**: Strategies for handling simultaneous updates. Options include last-write-wins and optimistic locking (version-checked writes that fail on conflict).
+- **共享记忆存储（shared memory store）**：一个集中式数据存储（Redis、数据库或内存字典），多个智能体在协作任务中读写它。
+- **访问控制（access control）**：决定哪些智能体可以读写每个命名空间的规则，防止未授权修改。
+- **命名空间（namespace）**：共享记忆中的逻辑分区（例如 `research/`、`code/`、`review/`）。它们按领域组织信息，减少写冲突。
+- **私人草稿本（private scratchpad）**：智能体的内部笔记，其他智能体看不见。只有完成的结果才进入共享记忆。
+- **黑板系统（blackboard system）**：一种经典 AI 架构，智能体把部分解张贴到共享工作区，其他智能体读取、完善或扩展这些解。
+- **冲突解决（conflict resolution）**：处理并发更新的策略，包括后写胜出（last-write-wins）和乐观锁（带版本检查的写入，冲突时失败）。
 
-## Architecture
+## 架构
 
 <p align="center">
-  <img src="../../images/diagrams/22_multi_agent_shared_memory.svg" alt="Multi Agent Shared Memory architecture diagram" width="720"/>
+  <img src="../../images/diagrams/22_multi_agent_shared_memory.svg" alt="多智能体共享记忆架构图" width="720"/>
 </p>
 
 <details><summary>Mermaid source</summary>
@@ -88,75 +88,75 @@ flowchart TD
 
 ---
 
-## How It Works
+## 工作原理
 
-1. Each agent gets a private scratchpad for internal notes that other agents can't see.
-2. An access-control layer grants read or write permissions per agent per namespace (like `research/` or `code/`).
-3. When an agent finishes a subtask, it writes results to the shared memory pool under its namespace.
-4. Other agents read from the pool to get context for their own subtasks.
-5. A conflict-resolution strategy (last-write-wins or version-check) handles simultaneous writes to the same key.
-6. A blackboard view aggregates all shared entries so any agent (or a human) can see the full picture.
+1. 每个智能体有一个私人草稿本，存放其他智能体看不到的内部笔记。
+2. 访问控制层按智能体、按命名空间授予读或写权限（比如 `research/` 或 `code/`）。
+3. 智能体完成子任务后，把结果写入共享记忆池中自己的命名空间。
+4. 其他智能体从记忆池读取，获得自己子任务所需的上下文。
+5. 冲突解决策略（后写胜出或版本检查）处理对同一个键的并发写入。
+6. 黑板视图聚合所有共享条目，任何智能体（或人）都能看到全貌。
 
-## When to Use
+## 何时使用
 
-- You have a multi-agent pipeline where each agent has a distinct role (researcher, coder, reviewer).
-- Agents need to pass structured results to each other without direct conversation.
-- You want an audit trail showing which agent wrote what and when.
-- Your workflow involves iterative refinement where one agent's output feeds another's input.
+- 你的多智能体流程中每个智能体角色分明（研究员、程序员、审查员）。
+- 智能体需要互相传递结构化结果，而不想直接对话。
+- 你想要一条审计线索，记录哪个智能体在何时写了什么。
+- 你的工作流需要迭代完善，一个智能体的输出是另一个的输入。
 
-## Limitations
+## 局限
 
-- Thread locks become a bottleneck when many agents write to the same keys at high frequency.
-- As shared memory grows, each agent reads more context per turn, increasing token costs.
-- The permission model runs in application code only. A bug could leak private scratchpad data into shared memory.
-- For tightly coupled agents that need real-time back-and-forth, direct message passing is faster than shared memory.
+- 很多智能体高频写入相同的键时，线程锁会变成瓶颈。
+- 共享记忆变大后，每个智能体每轮读取更多上下文，token 成本上升。
+- 权限模型只运行在应用代码里。一个 bug 就可能把私人草稿本数据泄漏进共享记忆。
+- 对需要实时来回交互的紧耦合智能体，直接消息传递比共享记忆更快。
 
-## Notebook
+## 配套 Notebook
 
-The [implemented notebook](./multi_agent_shared_memory.ipynb) walks you through building a complete shared memory system from scratch using the OpenAI SDK. You'll create three agents (researcher, coder, reviewer) that collaborate on a programming task through namespace-scoped shared memory. The notebook covers:
+[配套 notebook](./multi_agent_shared_memory.ipynb) 带你用 deepagents 和任意 OpenAI 兼容端点从零构建一个完整的共享记忆系统。你会创建三个智能体（研究员、程序员、审查员），通过带命名空间的共享记忆协作完成一个编程任务。notebook 包含：
 
-- `Permission`, `MemoryEntry`, and `AccessControl` data types.
-- A thread-safe `SharedMemoryPool` with last-write-wins and version-check conflict resolution.
-- An `Agent` class with private scratchpad and shared memory access.
-- A `Blackboard` class that aggregates all shared entries.
-- An end-to-end example run with permission enforcement and conflict resolution demos.
+- `Permission`、`MemoryEntry` 和 `AccessControl` 数据类型。
+- 线程安全的 `SharedMemoryPool`，带后写胜出和版本检查两种冲突解决。
+- `Agent` 类，带私人草稿本和共享记忆访问。
+- `Blackboard` 类，聚合所有共享条目。
+- 一个端到端示例，演示权限强制执行和冲突解决。
 
 ## FAQ
 
-### Q: What is Multi-Agent Shared Memory in agent memory?
+### 问：智能体记忆中的多智能体共享记忆是什么？
 
-**A:** Multi-Agent Shared Memory gives multiple collaborating agents a common memory space where they can read and write shared knowledge. Each agent contributes its findings and reads from the pool, enabling coordination without direct message passing. The system handles namespace scoping (so agents can have private and shared memory regions) and conflict resolution (when two agents update the same fact). This is essential for multi-agent architectures like research teams or pipeline agents.
+**答：** 多智能体共享记忆给多个协作智能体一块公共记忆空间，他们可以在其中读写共享知识。每个智能体贡献自己的发现并从记忆池读取，无需直接消息传递就能协调。系统处理命名空间划分（智能体因此可以同时拥有私人和共享记忆区域）和冲突解决（两个智能体更新同一事实时）。对研究团队或流水线式智能体这类多智能体架构，这是必备能力。
 
-### Q: When should I use Multi-Agent Shared Memory instead of Cross-Session Memory?
+### 问：什么时候用多智能体共享记忆，而不是跨会话记忆？
 
-**A:** Use Multi-Agent Shared Memory when two or more agents work on the same task or share knowledge about the same domain. Cross-Session Memory (technique 21) handles one agent persisting its own state across time. Shared memory handles multiple agents coordinating in real time. If a research agent and a writing agent need to share findings, or if specialized sub-agents divide a complex task, shared memory prevents redundant work and ensures consistency.
+**答：** 当两个或更多智能体处理同一个任务、或共享同一个领域的知识时，用多智能体共享记忆。跨会话记忆（技术 21）处理单个智能体跨时间持久化自己的状态。共享记忆处理多个智能体的实时协调。如果研究智能体和写作智能体需要共享发现，或者专职子智能体分工处理一个复杂任务，共享记忆能避免重复劳动并保证一致性。
 
-### Q: What are the limits or failure modes of Multi-Agent Shared Memory?
+### 问：多智能体共享记忆有哪些限制或失效模式？
 
-**A:** Concurrent writes create race conditions. Two agents may update the same fact simultaneously, and without conflict resolution, one update overwrites the other. Namespace design requires careful planning: too many shared regions create noise; too few create silos. Read contention can add latency when many agents query the store simultaneously. The shared memory also becomes a single point of failure. If it goes down, all agents lose access to collective knowledge.
+**答：** 并发写入会产生竞态条件。两个智能体可能同时更新同一事实，没有冲突解决时，一个更新会覆盖另一个。命名空间设计需要仔细规划：共享区域太多会产生噪声，太少会形成孤岛。很多智能体同时查询存储时，读取争用会增加延迟。共享记忆还是单点故障：它一挂，所有智能体都失去集体知识。
 
-### Q: Can I combine Multi-Agent Shared Memory with another memory technique?
+### 问：可以把多智能体共享记忆和其他记忆技术组合吗？
 
-**A:** Yes. Pair it with technique 17 (Memory Routing) to classify and route each agent's contributions to the right shared store (facts to semantic memory, experiences to episodic memory). Add technique 14 (Memory Consolidation) to periodically clean duplicates from the shared pool. Use technique 22 with technique 07 (Entity Memory) so agents build a shared entity knowledge base where each agent contributes facts about different entities.
+**答：** 可以。搭配技术 17（记忆路由），把每个智能体的贡献分类并路由到正确的共享存储（事实进语义记忆，经历进情景记忆）。加上技术 14（记忆巩固），定期清理共享池中的重复项。还可以把技术 22 和技术 07（实体记忆）结合，让智能体共建一个实体知识库，每个智能体贡献不同实体的事实。
 
-### Q: What library or framework can I use to skip the implementation work?
+### 问：有什么库或框架可以省去自己实现？
 
-**A:** LangGraph supports multi-agent workflows with shared state objects. CrewAI provides shared memory for agent crews. AutoGen supports shared context between conversable agents. For lower-level implementations, use Redis or a shared database as the memory backend and build namespace scoping on top. Zep (technique 27) can serve as a shared memory backend for multi-agent systems. Letta/MemGPT (technique 26) supports shared archival memory between agents in the same organization.
+**答：** LangGraph 支持带共享状态对象的多智能体工作流。CrewAI 为智能体团队提供共享记忆。AutoGen 支持可对话智能体之间的共享上下文。想要更底层的实现，可以用 Redis 或共享数据库作记忆后端，在其上构建命名空间划分。Zep（技术 27）可以作为多智能体系统的共享记忆后端。Letta/MemGPT（技术 26）支持同一组织内智能体之间的共享归档记忆。
 
-## References
+## 参考资料
 
-- Nii, H. P. (1986). ["Blackboard Systems."](https://doi.org/10.1609/aimag.v7i2.537) *AI Magazine*, 7(2), 38-53.
-- [LangGraph Multi-Agent Patterns](https://langchain-ai.github.io/langgraph/?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
-- [CrewAI Shared Memory](https://docs.crewai.com/concepts/memory?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
-- [AutoGen Multi-Agent Conversations](https://microsoft.github.io/autogen/?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
-- [Redis as a Shared State Backend](https://redis.io/docs/?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
+- Nii, H. P. (1986). ["Blackboard Systems."](https://doi.org/10.1609/aimag.v7i2.537) *AI Magazine*, 7(2), 38-53。
+- [LangGraph 多智能体模式](https://langchain-ai.github.io/langgraph/?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
+- [CrewAI 共享记忆](https://docs.crewai.com/concepts/memory?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
+- [AutoGen 多智能体对话](https://microsoft.github.io/autogen/?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
+- [Redis 作为共享状态后端](https://redis.io/docs/?utm_source=nirdiamant&utm_medium=github&utm_campaign=agent_memory_techniques)
 
-## Related Techniques
+## 相关技术
 
-- [**21 Cross-Session Memory**](../21_cross_session_memory/) - Persists a single agent's state across sessions. Shared memory extends this idea to multiple agents.
-- [**12 Working Memory and Context Window**](../12_working_memory_context_window/) - Explains how each agent manages its own context window, the private counterpart to shared memory.
-- [**24 Graph Memory with Graphiti**](../24_graph_memory_graphiti/) - A graph-based store that can serve as the shared backend when agents need relational reasoning.
-- [**30 Production Memory Patterns**](../30_production_memory_patterns/) - Covers deployment concerns like concurrency and consistency that matter when multiple agents write to the same store.
+- [**21 跨会话记忆**](../21_cross_session_memory/) - 跨会话持久化单个智能体的状态。共享记忆把这个想法扩展到多个智能体。
+- [**12 工作记忆与上下文窗口**](../12_working_memory_context_window/) - 讲解每个智能体如何管理自己的上下文窗口，它是共享记忆的私人对应物。
+- [**24 图记忆（Graphiti）**](../24_graph_memory_graphiti/) - 基于图的存储，当智能体需要关系推理时，可以用它作共享后端。
+- [**30 生产级记忆模式**](../30_production_memory_patterns/) - 覆盖并发、一致性等部署问题，多个智能体写同一个存储时这些问题很关键。
 
 ---
 

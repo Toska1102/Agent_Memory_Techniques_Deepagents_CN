@@ -1,56 +1,56 @@
-# Hierarchical Memory Layers
+# 分层记忆（Hierarchical Memory Layers）
 
 <p align="center">
-  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/13_hierarchical_memory_layers/hierarchical_memory_layers.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/13_hierarchical_memory_layers/hierarchical_memory_layers.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="在 Colab 中打开"/></a>
 </p>
 
-## 📖 At a Glance
+## 📖 速览
 
-| Difficulty | Time | Prerequisites |
+| 难度 | 时间 | 前置要求 |
 |------------|------|---------------|
-| Advanced | ~50 min | Python 3.8+, `OPENAI_API_KEY`, understanding of 06 Vector Store Memory and 12 Working Memory recommended |
+| 高级 | 约 50 分钟 | Python 3.8+、`LLM_API_KEY`，建议先了解 06 向量库记忆和 12 工作记忆 |
 
-This technique is for developers who need to organize agent memory across hot, warm, and cold storage tiers with automatic promotion and demotion.
+这项技术面向这样的开发者：需要把智能体记忆组织成热、温、冷三层存储，并自动升级和降级。
 
 ## TL;DR
 
-- **What it is:** **Hierarchical Memory Layers** organizes memories into hot, warm, and cold tiers with automatic promotion and demotion based on access patterns.
-- **When you need it:** Your agent accumulates more memory than any single store can hold and you need tiered retrieval by access frequency.
-- **The trade-off:** Managing three tiers with promotion and demotion logic adds significant implementation complexity.
-- **Closest alternative in this repo:** 12 Working Memory manages the context window tier only, without warm or cold storage layers.
+- **它是什么**：**分层记忆（Hierarchical Memory Layers）** 把记忆组织成热、温、冷三层，并根据访问模式自动升级和降级。
+- **什么时候需要**：你的智能体积累的记忆超过了任何单一存储的容量，需要按访问频率做分层检索。
+- **代价**：管理三层，加上升级和降级逻辑，实现复杂度显著增加。
+- **本仓库中最接近的替代**：12 工作记忆只管理上下文窗口这一层，没有温和冷存储层。
 
-## Overview
+## 概述
 
-Think of a kitchen. Everyday spices sit on the counter (fast, limited space), less common ones go in a cabinet, and rarely used items live in the pantry. Hierarchical Memory Layers applies this same tiered-storage idea to LLM agent memory. It organizes memories into hot, warm, and cold tiers. The warm tier typically uses a vector database (a database that matches items by meaning). Memories promote to faster tiers when accessed often and demote when they go stale. This agent memory technique is a natural fit for long-lived assistants or customer support agents that accumulate thousands of memories over time.
+想想厨房。常用的香料放在台面上（快，空间有限），不常用的放进橱柜，很少用的堆在储藏室。分层记忆把同样的分层存储思路用到 LLM 智能体记忆上。它把记忆组织成热、温、冷三层。温层通常用向量数据库（按含义匹配条目的数据库）。记忆被频繁访问就升级到更快的层，变得陈旧就降级。对于会积累成千上万条记忆的长期助手或客服智能体，这种智能体记忆技术非常合适。
 
-Hierarchical memory layers apply this same idea to agent memory. They organize storage into tiers (levels) with different speed, capacity, and cost. A typical setup has three layers. L1 (hot) holds the most relevant memories right inside the context window. L2 (warm) stores recently used memories in a fast vector database (a database that finds similar items by meaning). L3 (cold) keeps archived memories in cheaper, slower storage.
+分层记忆就是把这个思路应用到智能体记忆上。它把存储组织成速度、容量、成本各不相同的层。典型配置是三层。L1（热层）把最相关的记忆直接放在上下文窗口里。L2（温层）把最近使用的记忆放在快速的向量数据库（按含义查找相似条目的数据库）中。L3（冷层）把归档记忆放在更便宜、更慢的存储里。
 
-Memories move between tiers. When the agent accesses a memory often, it gets promoted (moved to a faster tier). When a memory goes stale, it gets demoted (moved to a slower tier). This approach lets agents handle far more total memory than flat storage. It also keeps retrieval fast for the most important information.
+记忆会在层之间移动。智能体频繁访问一条记忆时，它被升级（promotion，移到更快的层）。一条记忆变得陈旧时，它被降级（demotion，移到更慢的层）。这让智能体管理的记忆总量远超扁平存储。同时，最重要的信息检索依然很快。
 
-**Keywords:** agent memory, LLM agent, hierarchical memory, tiered storage, memory layers, vector database, promotion and demotion, cascading retrieval, long-lived agents, context window
+**关键词**：智能体记忆、LLM 智能体、分层记忆、分层存储、记忆层、向量数据库、升级与降级、级联检索、长期智能体、上下文窗口
 
 ## Notebook
 
-The [implemented notebook](./hierarchical_memory_layers.ipynb) walks you through building a three-tier memory system from scratch using the OpenAI SDK. It covers:
+[配套 notebook](./hierarchical_memory_layers.ipynb) 用 deepagents 和任意 OpenAI 兼容端点从零搭建一个三层记忆系统，内容包括：
 
-1. **TieredMemory data model** with content, embeddings, tier labels, and access-tracking metadata.
-2. **HierarchicalMemoryManager** with L1/L2/L3 storage, cascading retrieval, and tier movement logic.
-3. **Promotion and demotion policies** that run between agent turns based on access frequency and staleness.
-4. **HierarchicalMemoryAgent** that wires the memory manager into a conversational agent with automatic fact extraction.
-5. **Persistence** via JSON serialization for saving and restoring the full hierarchy.
+1. **TieredMemory 数据模型**：包含内容、嵌入、层标签和访问跟踪元数据。
+2. **HierarchicalMemoryManager**：L1/L2/L3 存储、级联检索和层间移动逻辑。
+3. **升级和降级策略**：在智能体轮次之间根据访问频率和陈旧度运行。
+4. **HierarchicalMemoryAgent**：把记忆管理器接入对话智能体，自动提取事实。
+5. **持久化**：用 JSON 序列化保存和恢复整个层级结构。
 
-## Key Concepts
+## 关键概念
 
-- **L1/L2/L3 memory tiers**: Hot (in-context), warm (vector store), and cold (archival database) layers. Each has a distinct speed and capacity profile.
-- **Promotion policies**: Rules that move memories to faster tiers when access frequency crosses a threshold.
-- **Demotion/eviction**: Pushing memories to slower tiers when they fall below activity thresholds or when faster tiers reach capacity.
-- **Access frequency tracking**: Counting how often each memory is retrieved. This informs promotion and demotion decisions.
-- **Cascading retrieval**: Searching L1 first, then L2 on a miss, then L3. Mirrors how CPU cache misses cascade through the hardware hierarchy.
+- **L1/L2/L3 记忆层**：热层（上下文内）、温层（向量库）和冷层（归档数据库）。每一层的速度和容量都不同。
+- **升级策略（promotion policies）**：访问频率超过阈值时，把记忆移到更快的层。
+- **降级/淘汰（demotion/eviction）**：活跃度低于阈值或快层满员时，把记忆推到更慢的层。
+- **访问频率跟踪**：统计每条记忆被检索的次数，为升级和降级决策提供依据。
+- **级联检索（cascading retrieval）**：先搜 L1，未命中再搜 L2，最后搜 L3。模仿 CPU 缓存未命中在硬件层级间的逐级下落。
 
-## Architecture
+## 架构
 
 <p align="center">
-  <img src="../../images/diagrams/13_hierarchical_memory_layers.svg" alt="Hierarchical Memory Layers architecture diagram" width="720"/>
+  <img src="../../images/diagrams/13_hierarchical_memory_layers.svg" alt="分层记忆架构图" width="720"/>
 </p>
 
 <details><summary>Mermaid source</summary>
@@ -96,70 +96,70 @@ flowchart TB
 
 ---
 
-## How It Works
+## 工作原理
 
-1. A new memory enters L2 (the warm tier) with an embedding and access-tracking metadata.
-2. When the agent queries memory, it searches L1 first, then L2, then L3. This is called cascading retrieval.
-3. Each hit increments an access counter and updates the last-accessed timestamp.
-4. A maintenance cycle runs between agent turns. It promotes frequently accessed L2 memories to L1 (the hot tier).
-5. Stale L1 memories (those not accessed for a set period) get demoted back to L2. Cold L2 memories sink to L3.
-6. If a user re-accesses an archived L3 memory, it promotes back to L2 automatically.
+1. 新记忆带着嵌入和访问跟踪元数据进入 L2（温层）。
+2. 智能体查询记忆时，先搜 L1，再搜 L2，最后搜 L3。这叫级联检索。
+3. 每次命中都会增加访问计数，并更新最近访问时间戳。
+4. 维护周期在智能体轮次之间运行，把访问频繁的 L2 记忆升到 L1（热层）。
+5. 陈旧的 L1 记忆（一段时间未访问）降回 L2。冷清的 L2 记忆沉到 L3。
+6. 用户再次访问已归档的 L3 记忆时，它自动升回 L2。
 
-## When to Use
+## 何时使用
 
-- Production agents with large memory volumes where storing everything in a vector database is too expensive.
-- Systems that need predictable low-latency retrieval for critical memories alongside deep archival search.
-- Long-lived agents that accumulate memories over weeks or months.
+- 生产环境的智能体记忆量很大，全部放进向量数据库成本太高。
+- 系统既需要关键记忆的低延迟检索，也需要深度归档搜索。
+- 在数周或数月里不断积累记忆的长期智能体。
 
-## When to Avoid
+## 何时避免
 
-- Short conversations (under 20 turns) where flat storage works fine.
-- Prototypes where tuning promotion thresholds adds unnecessary complexity.
-- Systems where all memories are equally important (no natural hot/cold distinction).
+- 短对话（20 轮以内），扁平存储就够用。
+- 原型项目，调升级阈值只会平添复杂度。
+- 所有记忆同等重要的系统（没有天然的热/冷之分）。
 
-## Limitations
+## 局限
 
-- Promotion thresholds, staleness windows, and L1 capacity all need calibration. Bad settings cause tier thrashing (memories bouncing between tiers) or stale data pinned in L1.
-- A new agent has no access history. Everything sits in L2 until enough queries accumulate to drive promotions. This is the cold start problem.
-- Every memory needs an embedding and access metadata. This adds latency and cost to every store operation.
-- In-memory implementations don't scale. Production systems need real backends (e.g., Redis for L1, a vector database for L2, PostgreSQL for L3).
-- The maintenance cycle can block the response path if you don't run it asynchronously.
+- 升级阈值、陈旧度窗口和 L1 容量都需要校准。参数不当会导致层间抖动（记忆在层间来回移动），或让陈旧数据一直占着 L1。
+- 新智能体没有访问历史。在积累足够查询驱动升级之前，所有记忆都停留在 L2。这就是冷启动问题（cold start）。
+- 每条记忆都需要嵌入和访问元数据。这给每次存储操作增加延迟和成本。
+- 内存中的实现无法扩展。生产系统需要真实后端（例如 L1 用 Redis，L2 用向量数据库，L3 用 PostgreSQL）。
+- 维护周期如果不在后台异步运行，会阻塞响应路径。
 
 ## FAQ
 
-### Q: What is Hierarchical Memory in agent memory?
+### 问：智能体记忆中的分层记忆（Hierarchical Memory）是什么？
 
-**A:** Hierarchical Memory organizes memories into hot, warm, and cold tiers based on access patterns and importance. The hot tier (context window) holds active working data. The warm tier (fast cache like Redis) stores recently accessed items. The cold tier (vector DB or disk) archives everything else. Memories promote upward when accessed and demote downward when idle. This mirrors CPU cache hierarchies: frequently used data stays close, rarely used data lives in cheaper storage.
+**答**：分层记忆按访问模式和重要性，把记忆组织成热、温、冷三层。热层（上下文窗口）存放活跃的工作数据。温层（Redis 这类快速缓存）存放最近访问的条目。冷层（向量数据库或磁盘）归档其余所有内容。记忆被访问就上移，闲置就下移。这模仿了 CPU 缓存层级：常用数据放在近处，少用数据放在更便宜的存储里。
 
-### Q: When should I use Hierarchical Memory instead of Working Memory?
+### 问：什么时候该用分层记忆，而不是工作记忆？
 
-**A:** Use Hierarchical Memory when you have more data than fits in any single tier and access patterns are uneven. Working Memory (technique 12) manages only the context window. Hierarchical Memory adds warm and cold tiers below it, creating a complete storage stack. If your agent accumulates thousands of memories across sessions but only accesses a small subset per conversation, the tiered approach avoids loading everything into expensive context while keeping popular items fast.
+**答**：当数据量大到任何单层都装不下，且访问模式不均匀时，用分层记忆。工作记忆（技术 12）只管理上下文窗口。分层记忆在它下面增加温和冷层，构成完整的存储栈。如果你的智能体跨会话积累成千上万条记忆，而每次对话只访问其中一小部分，分层方案既能避免把所有内容装进昂贵的上下文，又能让热门条目保持快速访问。
 
-### Q: What are the limits or failure modes of Hierarchical Memory?
+### 问：分层记忆有哪些局限或失效模式？
 
-**A:** Promotion and demotion policies require tuning per use case. Incorrect thresholds cause cache thrashing (items bouncing between tiers) or stale warm caches. The system adds infrastructure complexity: you need at least two storage backends (context + persistent store, often three). Cold-tier retrieval adds latency (50-500ms depending on the backend). Monitoring which tier holds which data requires observability tooling that most lightweight memory systems lack.
+**答**：升级和降级策略需要针对具体场景调参。阈值不对会导致缓存抖动（thrashing，条目在层间来回移动）或温缓存陈旧。这套系统增加基础设施复杂度：你至少需要两种存储后端（上下文 + 持久存储，通常是三种）。冷层检索增加延迟（50-500 毫秒，取决于后端）。要监控哪一层存放哪些数据，需要可观测性工具，而多数轻量记忆系统没有这些工具。
 
-### Q: Can I combine Hierarchical Memory with another memory technique?
+### 问：分层记忆能和其他记忆技术组合吗？
 
-**A:** Yes. Hierarchical Memory is a structural pattern that wraps other techniques. Use technique 06 (Vector Store Memory) as the cold tier, technique 12 (Working Memory) as the hot tier, and Redis or a fast key-value store as the warm tier. Add technique 14 (Memory Consolidation) to periodically clean and merge cold-tier contents. Technique 19 (Forgetting and Decay) can trigger demotion from warm to cold based on time-based decay scores.
+**答**：能。分层记忆是一个结构性模式，可以包裹其他技术。用技术 06（向量库记忆）做冷层，技术 12（工作记忆）做热层，Redis 或快速键值存储做温层。再加上技术 14（记忆巩固），定期清理和合并冷层内容。技术 19（遗忘与衰减）可以基于时间衰减分数，触发从温层到冷层的降级。
 
-### Q: What library or framework can I use to skip the implementation work?
+### 问：有什么库或框架能省掉自己实现的工作？
 
-**A:** Letta/MemGPT (technique 26) implements a three-tier hierarchy with core memory (hot), recall memory (warm), and archival memory (cold). Zep (technique 27) uses a two-tier approach with in-session memory and persistent graph storage. No other major framework provides a ready-made hierarchical memory class. For custom builds, combine Redis (warm tier) with Chroma or Pinecone (cold tier) and a LangChain memory wrapper for the hot tier.
+**答**：Letta/MemGPT（技术 26）实现了三层结构：核心记忆（core memory，热）、召回记忆（recall memory，温）和归档记忆（archival memory，冷）。Zep（技术 27）采用两层方案：会话内记忆加持久图存储。其他主流框架没有现成的分层记忆类。自己搭建时，可以用 Redis（温层）配合 Chroma 或 Pinecone（冷层），热层用 LangChain 的记忆封装。
 
-## References
+## 参考文献
 
 - Patterson, D. A., & Hennessy, J. L. (2017). *Computer Organization and Design*. Morgan Kaufmann.
 - Packer, C., et al. (2023). "MemGPT: Towards LLMs as Operating Systems." arXiv:2310.08560.
 - Zhang, Z., et al. (2024). "A Survey on the Memory Mechanism of Large Language Model Based Agents." arXiv:2404.13501.
 - Nuxoll, A. M., & Laird, J. E. (2007). "Extending Cognitive Architecture with Episodic Memory." *AAAI*, 1560-1564.
 
-## Related Techniques
+## 相关技术
 
-- [**12 Working Memory & Context Window Management**](../12_working_memory_context_window/) - The L1 hot tier is working memory. This technique dives deeper into managing what fits in the context window.
-- [**06 Vector Store Memory**](../06_vector_store_memory/) - The warm tier typically uses vector storage. Start here if you want to understand embeddings and similarity search first.
-- [**14 Memory Consolidation**](../14_memory_consolidation/) - Consolidation keeps each tier clean by merging duplicates and resolving contradictions as memories accumulate.
-- [**15 Memory Compaction**](../15_memory_compaction/) - Compaction shrinks memories into shorter forms so each tier holds more information in less space.
+- [**12 工作记忆与上下文窗口管理**](../12_working_memory_context_window/) - L1 热层就是工作记忆。该技术深入讲解如何管理上下文窗口的内容。
+- [**06 向量库记忆**](../06_vector_store_memory/) - 温层通常用向量存储。想先理解嵌入和相似度检索，从这里开始。
+- [**14 记忆巩固**](../14_memory_consolidation/) - 巩固通过合并重复、解决矛盾，让每一层随记忆积累保持干净。
+- [**15 记忆压缩**](../15_memory_compaction/) - 压缩把记忆缩成更短的形式，让每层用更少空间装更多信息。
 
 ---
 

@@ -1,48 +1,48 @@
-# Temporal Memory
+# 时序记忆（Temporal Memory）
 
 <p align="center">
-  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/18_temporal_memory/temporal_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+  <a href="https://colab.research.google.com/github/NirDiamant/Agent_Memory_Techniques/blob/main/all_techniques/18_temporal_memory/temporal_memory.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="在 Colab 中打开"/></a>
 </p>
 
-## 📖 At a Glance
+## 📖 速览
 
-| Difficulty | Time | Prerequisites |
+| 难度 | 耗时 | 前置要求 |
 |------------|------|---------------|
-| Intermediate | ~35 min | Python 3.8+, `OPENAI_API_KEY`, understanding of 06 Vector Store Memory recommended |
+| 中级 | 约 35 分钟 | Python 3.8+、`LLM_API_KEY`、建议先理解 06 向量库记忆 |
 
-This technique is for developers building agents that need to track when facts were learned, detect outdated information, and reason about time.
+这项技术面向这样的开发者：你需要智能体记住事实是何时学到的，识别过时的信息，并进行和时间有关的推理。
 
 ## TL;DR
 
-- **What it is:** **Temporal Memory** attaches timestamps to memories and uses recency-weighted retrieval with configurable decay functions.
-- **When you need it:** Your agent must prefer newer facts over older ones and support time-range or "as of" queries.
-- **The trade-off:** Choosing the right decay half-life requires experimentation, and scoring all candidates adds latency at 100k+ entries.
-- **Closest alternative in this repo:** 19 Forgetting and Decay applies decay for lifecycle pruning, while Temporal Memory applies it during retrieval scoring.
+- **是什么：** **时序记忆**给记忆打上时间戳，用可配置的衰减函数做新近度加权检索。
+- **什么时候需要：** 你的智能体要优先采用较新的事实，还要支持时间范围查询和时点查询。
+- **代价：** 选对衰减半衰期需要反复实验；对全部候选记忆评分，在 10 万条以上时会增加延迟。
+- **本仓库中最接近的替代：** 19 遗忘与衰减用衰减做生命周期修剪，时序记忆则在检索评分时使用衰减。
 
-## Overview
+## 描述
 
-Think of a notebook where you write everything with a date. When someone asks "what's the project status?", you don't read the entire notebook. You flip to the most recent page. Temporal Memory is the agent memory technique that gives LLM agents this same time-awareness. It attaches timestamps to every stored memory and adds recency-weighted retrieval (scoring newer memories higher when relevance is similar). It also supports time-range queries and "as of" queries that reconstruct past knowledge states. You'll need it for project tracking agents, customer support bots, and any system where facts change over time.
+想想一本什么都标着日期的笔记本。有人问「项目进展如何？」时，你不会读完整个本子，而是直接翻到最近的一页。时序记忆就是给 LLM 智能体这种时间感知的智能体记忆技术。它给每条存储的记忆打上时间戳，加入新近度加权检索（在相关性相近时给较新的记忆更高得分），还支持时间范围查询和重建过去知识状态的时点查询。项目跟踪智能体、客服机器人，以及任何事实会随时间变化的系统，都需要它。
 
-Standard vector-based retrieval (searching by meaning similarity) treats all memories as equally current. This can lead to agents citing outdated information or failing to notice how situations evolved.
+标准的基于向量的检索（按语义相似度搜索）把所有记忆当作同样「新」。这会让智能体引用过时的信息，或者看不出局势是如何演变的。
 
-Temporal memory solves this. It supports time-range queries ("what happened last week?"), recency-weighted retrieval (preferring newer information when relevance scores are close), and "as of" queries (reconstructing what the agent knew at a specific past moment). These capabilities are essential for agents in dynamic environments where facts change and chronological order carries meaning.
+时序记忆解决了这个问题。它支持时间范围查询（「上周发生了什么？」）、新近度加权检索（在相关性得分接近时优先较新的信息），以及时点查询（重建智能体在过去某个时刻知道什么）。对动态环境中的智能体来说，这些能力必不可少：事实在变，时间顺序本身就携带信息。
 
-**Keywords:** agent memory, LLM agent, temporal memory, timestamp metadata, recency-weighted retrieval, temporal decay, time-range queries, chronological memory, event timeline
+**关键词：** 智能体记忆、LLM 智能体、时序记忆、时间戳元数据、新近度加权检索、时间衰减、时间范围查询、时序化记忆、事件时间线
 
-## Key Concepts
+## 关键概念
 
-- **Timestamp metadata**: Every memory carries creation time, last access time, and optionally an event time (when the described event actually occurred).
-- **Temporal decay functions**: Mathematical functions (exponential, linear) that reduce a memory's retrieval score as it ages. Parameterized by a half-life (the time for the score to drop to 50%).
-- **Recency scoring**: Combining semantic relevance with temporal freshness. When two memories match a query equally well, the more recent one ranks higher. The blending weight is configurable.
-- **Time-range queries**: Retrieving memories that fall within a specified time window. For example: "conversations from the past 24 hours."
-- **Temporal ordering**: Maintaining the chronological sequence of memories. This helps the agent understand cause-and-effect relationships.
-- **"As of" retrieval**: Reconstructing what the agent knew at a specific past moment by filtering out memories created after that timestamp.
-- **Event timelines**: Building ordered sequences of related events from memory, with optional LLM-powered narrative summarization.
+- **时间戳元数据（timestamp metadata）**：每条记忆都带有创建时间、最近访问时间，以及可选的事件时间（所描述事件实际发生的时间）。
+- **时间衰减函数（temporal decay function）**：随记忆变旧而降低其检索得分的数学函数（指数、线性）。用半衰期参数化，即得分降到 50% 所需的时间。
+- **新近度评分（recency scoring）**：把语义相关性和时间新鲜度结合起来。当两条记忆与查询匹配得一样好时，较新的那条排名更高。混合权重可配置。
+- **时间范围查询（time-range query）**：检索落在指定时间窗口内的记忆。例如「过去 24 小时的对话」。
+- **时序排序（temporal ordering）**：保持记忆的时间先后顺序。这帮助智能体理解因果关系。
+- **时点检索（"as of" retrieval）**：过滤掉某时间戳之后创建的记忆，重建智能体在过去某个时刻知道什么。
+- **事件时间线（event timeline）**：从记忆中构建按时间排序的相关事件序列，可以用 LLM 生成叙事式摘要。
 
-## Architecture
+## 架构
 
 <p align="center">
-  <img src="../../images/diagrams/18_temporal_memory.svg" alt="Temporal Memory architecture diagram" width="720"/>
+  <img src="../../images/diagrams/18_temporal_memory.svg" alt="时序记忆架构图" width="720"/>
 </p>
 
 <details><summary>Mermaid source</summary>
@@ -73,73 +73,73 @@ flowchart LR
 
 ---
 
-## How It Works
+## 工作原理
 
-1. Every memory is stored with structured timestamp fields (`created_at`, `event_time`, `last_accessed`).
-2. At query time, a temporal decay function adjusts each memory's base relevance score by its age.
-3. The decay function is configurable: exponential decay for strong freshness preference, linear decay for gradual aging, or no decay for time-insensitive queries.
-4. Time-range filters constrain results to specific periods before semantic search runs.
-5. "As of" queries exclude memories created after the target timestamp.
-6. Timeline construction aggregates related memories in chronological order for narrative-style recall.
+1. 每条记忆以结构化时间戳字段存储（`created_at`、`event_time`、`last_accessed`）。
+2. 查询时，时间衰减函数根据每条记忆的年龄调整它的基础相关性得分。
+3. 衰减函数可配置：指数衰减适合强烈偏好新信息的场景，线性衰减让记忆逐渐变旧，不衰减则适合对时间不敏感的查询。
+4. 时间范围过滤器先约束结果的时间区间，再跑语义搜索。
+5. 时点查询排除在目标时间戳之后创建的记忆。
+6. 时间线构建按时间顺序聚合相关记忆，支持叙事式回忆。
 
-## What You Will Build
+## 你将构建什么
 
-The [notebook](./temporal_memory.ipynb) walks through a complete implementation:
+[notebook](./temporal_memory.ipynb) 完整走了一遍实现：
 
-- A `TemporalMemory` dataclass with structured timestamp metadata.
-- A `TemporalDecay` class supporting exponential and linear decay functions.
-- A `TemporalMemoryStore` with four retrieval modes: standard query, time-range, "as of", and timeline.
-- An LLM-powered timeline summarizer that produces narrative summaries.
-- A full example tracking a software project over 30 days, demonstrating all retrieval modes.
+- 一个带结构化时间戳元数据的 `TemporalMemory` 数据类（dataclass）。
+- 一个支持指数衰减和线性衰减的 `TemporalDecay` 类。
+- 一个 `TemporalMemoryStore`，提供四种检索模式：标准查询、时间范围、时点查询和时间线。
+- 一个用 LLM 生成叙事式摘要的时间线摘要器。
+- 一个完整的示例：跟踪一个软件项目 30 天，演示全部检索模式。
 
-## When to Use
+## 何时使用
 
-- Agents tracking evolving situations where information becomes outdated (project status, market conditions).
-- Systems that need to answer "when" questions or provide chronological summaries.
-- Environments where the same entity's attributes change over time and the most current state matters.
+- 智能体跟踪不断变化的局势，信息会过时（项目状态、市场行情）。
+- 系统需要回答「什么时候」类问题，或给出按时间排序的摘要。
+- 同一实体的属性随时间变化，而最新状态最重要的环境。
 
-## Limitations
+## 局限
 
-- Evergreen facts (math formulas, API docs, company policies) get unfairly penalized by decay. You need to exempt them from decay or set a very long half-life.
-- Choosing the right half-life and recency weight requires experimentation. Too short forgets important context. Too long defeats the purpose of temporal awareness.
-- Every query computes decay scores for all candidate memories. For large stores (100k+ entries), this adds latency compared to pure vector search.
-- The system assumes accurate timestamps. Out-of-order arrivals or clock skew in distributed setups produce misleading recency scores.
+- 常青事实（数学公式、API 文档、公司政策）会被衰减不公平地惩罚。你要么把它们排除在衰减之外，要么把半衰期设得很长。
+- 选对半衰期和新近度权重需要实验。太短会忘掉重要上下文，太长则让时间感知失去意义。
+- 每次查询都要为所有候选记忆计算衰减得分。存储规模大（10 万条以上）时，比纯向量检索增加延迟。
+- 系统假设时间戳准确。分布式部署中的乱序到达或时钟偏差会产生误导性的新近度得分。
 
-## FAQ
+## 常见问题
 
-### Q: What is Temporal Memory in agent memory?
+### 问：智能体记忆中的时序记忆是什么？
 
-**A:** Temporal Memory attaches timestamps to every stored memory and uses recency-weighted retrieval to prefer newer information over older information. A configurable decay function (exponential, linear, or step) reduces the retrieval score of older memories. For example, with a half-life of 7 days, a memory from last week scores 50% of a memory from today. This helps the agent prioritize current facts when information evolves over time, such as project status or user preferences.
+**答：** 时序记忆给每条存储的记忆打上时间戳，用新近度加权检索让较新的信息排在较旧的信息前面。可配置的衰减函数（指数、线性或阶梯式）降低旧记忆的检索得分。例如半衰期设为 7 天时，上周的记忆得分只有今天记忆的 50%。当信息随时间演变（比如项目状态或用户偏好）时，这能帮智能体优先采用当前的事实。
 
-### Q: When should I use Temporal Memory instead of Forgetting and Decay?
+### 问：什么时候该用时序记忆而不是遗忘与衰减？
 
-**A:** Use Temporal Memory when you want time-awareness during retrieval without permanently deleting memories. Forgetting and Decay (technique 19) permanently prunes memories that fall below an importance threshold. Temporal Memory keeps everything in storage but down-ranks older items in search results. If you might need old memories later (for auditing or reactivation), temporal scoring is safer. Use forgetting and decay when storage cost is a concern and you want to reclaim space.
+**答：** 当你想在检索时获得时间感知、又不想永久删除记忆时，用时序记忆。遗忘与衰减（技术 19）会永久修剪低于重要性阈值的记忆。时序记忆把所有东西都留在存储里，只是在搜索结果中降低旧条目的排名。如果以后可能还需要旧记忆（用于审计或重新激活），时序评分更安全。当存储成本是主要顾虑、想腾出空间时，再用遗忘与衰减。
 
-### Q: What are the limits or failure modes of Temporal Memory?
+### 问：时序记忆有哪些局限或失败模式？
 
-**A:** Temporal weighting can bury timeless facts. If the user stated a permanent preference months ago, decay may push it below newer but less important messages. Choosing the right decay function and half-life requires experimentation. A half-life that is too short makes the agent forgetful. A half-life that is too long provides almost no temporal benefit. The approach also assumes that newer means more relevant, which is not always true for stable facts or long-term preferences.
+**答：** 时间加权可能把永不过时的事实埋掉。如果用户几个月前说过一个永久偏好，衰减可能把它压到较新但不重要的消息之下。选对衰减函数和半衰期需要实验。半衰期太短，智能体会变得健忘；太长则几乎带不来时间上的收益。这个方法还假设「更新就意味着更相关」，对稳定事实或长期偏好来说并不总成立。
 
-### Q: Can I combine Temporal Memory with another memory technique?
+### 问：时序记忆能和其他记忆技术组合吗？
 
-**A:** Yes. Combine it with technique 06 (Vector Store Memory) by adding a time-decay multiplier to the similarity score during retrieval. This gives you relevance times recency ranking. Pair it with technique 10 (Semantic Memory) and tag facts with "stable" or "volatile" labels so stable facts (like a user's name) bypass decay while volatile facts (like project deadlines) decay normally. This selective decay approach prevents burying permanent information.
+**答：** 能。和技术 06（向量库记忆）组合时，在检索时给相似度得分乘一个时间衰减系数，就得到「相关性 × 新近度」的排序。也可以搭配技术 10（语义记忆），给事实打上「稳定」或「易变」标签，让稳定事实（比如用户的名字）绕过衰减，易变事实（比如项目截止日期）正常衰减。这种选择性衰减能防止永久信息被埋掉。
 
-### Q: What library or framework can I use to skip the implementation work?
+### 问：有什么库或框架能省掉自己实现的工作？
 
-**A:** Zep (technique 27) applies temporal scoring natively in its retrieval pipeline. Graphiti (technique 24) timestamps all graph edges and supports temporal queries over its knowledge graph. LangChain does not have a built-in temporal memory class, but you can add a time-decay multiplier to any retriever by wrapping the score function. The implementation adds roughly 20-30 lines to an existing vector retrieval setup. Mem0 (technique 25) tracks fact creation and update times for temporal filtering.
+**答：** Zep（技术 27）在检索流程中原生应用时间评分。Graphiti（技术 24）给所有图的边打时间戳，支持在知识图谱上做时间查询。LangChain 没有内置的时序记忆类，但你可以在任何检索器上包一层得分函数，加上时间衰减系数。在已有的向量检索方案上，这个实现大约只需 20-30 行代码。Mem0（技术 25）记录事实的创建和更新时间，可做时间过滤。
 
-## References
+## 参考文献
 
-- Park, J. S., et al. (2023). ["Generative Agents: Interactive Simulacra of Human Behavior."](https://arxiv.org/abs/2304.03442) arXiv:2304.03442.
-- Zhong, W., et al. (2024). ["MemoryBank: Enhancing Large Language Models with Long-Term Memory."](https://arxiv.org/abs/2305.10250) arXiv:2305.10250.
-- Tulving, E. (2002). ["Episodic Memory: From Mind to Brain."](https://doi.org/10.1146/annurev.psych.53.100901.135114) *Annual Review of Psychology*, 53, 1-25.
-- Hassabis, D., & Maguire, E. A. (2007). ["Deconstructing Episodic Memory with Construction."](https://doi.org/10.1016/j.tics.2007.05.001) *Trends in Cognitive Sciences*, 11(7), 299-306.
+- Park, J. S., et al. (2023). ["Generative Agents: Interactive Simulacra of Human Behavior."](https://arxiv.org/abs/2304.03442) arXiv:2304.03442。
+- Zhong, W., et al. (2024). ["MemoryBank: Enhancing Large Language Models with Long-Term Memory."](https://arxiv.org/abs/2305.10250) arXiv:2305.10250。
+- Tulving, E. (2002). ["Episodic Memory: From Mind to Brain."](https://doi.org/10.1146/annurev.psych.53.100901.135114) *Annual Review of Psychology*, 53, 1-25。
+- Hassabis, D., & Maguire, E. A. (2007). ["Deconstructing Episodic Memory with Construction."](https://doi.org/10.1016/j.tics.2007.05.001) *Trends in Cognitive Sciences*, 11(7), 299-306。
 
-## Related Techniques
+## 相关技术
 
-- [**19 Forgetting and Decay**](../19_forgetting_and_decay/) - Uses similar decay functions but focused on pruning stale memories instead of scoring them.
-- [**09 Episodic Memory**](../09_episodic_memory/) - Episodes carry natural temporal ordering. Temporal memory adds the retrieval math to take advantage of it.
-- [**20 Memory Retrieval Patterns**](../20_memory_retrieval_patterns/) - Temporal scoring integrates into multi-stage retrieval pipelines alongside semantic and keyword search.
-- [**06 Vector Store Memory**](../06_vector_store_memory/) - The basic embedding-based retrieval that temporal memory extends with time-awareness.
+- [**19 遗忘与衰减**](../19_forgetting_and_decay/) - 用类似的衰减函数，但重点是修剪过时记忆，而不是给它们评分。
+- [**09 情景记忆**](../09_episodic_memory/) - 情景天然带有时间顺序。时序记忆补上利用它的检索数学。
+- [**20 记忆检索模式**](../20_memory_retrieval_patterns/) - 时间评分可以和语义、关键词检索一起集成进多阶段检索流程。
+- [**06 向量库记忆**](../06_vector_store_memory/) - 基础的基于嵌入的检索，时序记忆在它之上加入时间感知。
 
 ---
 
